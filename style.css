@@ -1,0 +1,59 @@
+body {
+  background:#050b2e;
+  color:white;
+  font-family:Arial;
+}
+
+.container {
+  display:grid;
+  grid-template-columns:3fr 1fr;
+  gap:20px;
+  padding:20px;
+}
+
+.cards {
+  display:flex;
+  gap:20px;
+}
+
+.card {
+  flex:1;
+  background:#0b0f4a;
+  padding:20px;
+  border-radius:10px;
+}
+
+.charts {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:15px;
+  margin-top:20px;
+}
+
+.chart {
+  background:black;
+  height:250px;
+}
+
+.ecg {
+  margin-top:20px;
+  background:black;
+  height:200px;
+}
+
+.right {
+  display:flex;
+  flex-direction:column;
+  gap:20px;
+}
+
+.gauge {
+  background:black;
+  height:250px;
+}
+
+.status {
+  text-align:center;
+  font-size:30px;
+  margin-top:20px;
+}

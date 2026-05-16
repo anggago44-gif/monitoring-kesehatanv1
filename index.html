@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monitoring Kesehatan</title>
+
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial;
+  background: #020c2b;
+  color: white;
+}
+
+.container {
+  padding: 20px;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 15px;
+}
+
+.card {
+  background: #07123a;
+  padding: 15px;
+  border-radius: 10px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 3fr 1fr;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.charts {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 15px;
+}
+
+.chart-box {
+  background: black;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.gauges {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+#gauge1,#gauge2,#gauge3 {
+  height: 260px;
+}
+
+.status {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 25px;
+  font-weight: bold;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>MONITORING KESEHATAN</h1>
+
+<div class="cards">
+  <div class="card">Suhu<br><h2 id="temp">0°C</h2></div>
+  <div class="card">SpO₂<br><h2 id="spo2">0%</h2></div>
+  <div class="card">Heart Rate<br><h2 id="hr">0 bpm</h2></div>
+</div>
+
+<div class="grid">
+
+<div class="charts">
+  <div class="chart-box"><div id="chartTemp"></div></div>
+  <div class="chart-box"><div id="chartSpo2"></div></div>
+  <div class="chart-box"><div id="chartHR"></div></div>
+</div>
+
+<div class="gauges">
+  <div class="chart-box"><div id="gauge1"></div></div>
+  <div class="chart-box"><div id="gauge2"></div></div>
+  <div class="chart-box"><div id="gauge3"></div></div>
+</div>
+
+</div>
+
+<div class="chart-box" style="margin-top:20px">
+  <div id="ecg"></div>
+</div>
+
+<div class="status" id="status">MENUNGGU...</div>
+
+</div>
+
+<script src="index.js"></script>
+</body>
+</html>
