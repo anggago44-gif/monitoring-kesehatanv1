@@ -1,25 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
 <meta charset="UTF-8">
 
 <meta name="viewport"
-content="width=device-width, initial-scale=1.0">
-
-<meta
-name="theme-color"
-content="#050b2e">
+content="width=device-width,initial-scale=1.0">
 
 <title>Monitoring Kesehatan</title>
-
-<link
-rel="stylesheet"
-href="style.css?v=300">
 
 <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
+<link rel="stylesheet"
+href="style.css?v=999">
 
 </head>
 
@@ -32,16 +26,49 @@ MONITORING KESEHATAN
 </h1>
 
 
-<!-- CARD SENSOR -->
+<!-- STANDBY -->
+
+<div
+id="standbyBox"
+class="standby">
+
+<h2>
+
+⚠ BELUM ADA PASIEN AKTIF
+
+</h2>
+
+<p>
+
+Silakan isi data pasien terlebih dahulu
+
+</p>
+
+<button onclick="
+window.location='pasien.html'
+">
+
+📝 Pendaftaran Pasien
+
+</button>
+
+</div>
+
+
+
+
+<!-- DASHBOARD -->
+
+<div id="dashboardContent">
+
+
 
 <div class="cards">
 
 
 <div class="card">
 
-<div>
 🌡 Suhu
-</div>
 
 <h2 id="temp">
 0°C
@@ -50,12 +77,9 @@ MONITORING KESEHATAN
 </div>
 
 
-
 <div class="card">
 
-<div>
 🩸 SpO₂
-</div>
 
 <h2 id="spo2">
 0%
@@ -64,12 +88,9 @@ MONITORING KESEHATAN
 </div>
 
 
-
 <div class="card">
 
-<div>
 ❤️ Heart Rate
-</div>
 
 <h2 id="hr">
 0 bpm
@@ -82,33 +103,37 @@ MONITORING KESEHATAN
 
 
 
-<!-- GRID TENGAH -->
-
 <div class="grid">
 
-
-<!-- CHART -->
 
 <div class="charts">
 
 
 <div class="chart-box">
 
-<div id="chartTemp"></div>
+<div id="chartTemp">
 
 </div>
+
+</div>
+
 
 
 <div class="chart-box">
 
-<div id="chartSpo2"></div>
+<div id="chartSpo2">
 
 </div>
+
+</div>
+
 
 
 <div class="chart-box">
 
-<div id="chartHR"></div>
+<div id="chartHR">
+
+</div>
 
 </div>
 
@@ -117,10 +142,8 @@ MONITORING KESEHATAN
 
 
 
-<!-- GAUGE -->
 
 <div class="gauges">
-
 
 <div class="chart-box">
 
@@ -150,19 +173,19 @@ MONITORING KESEHATAN
 
 
 
-<!-- ECG -->
 
 <div
 class="chart-box"
-style="margin-top:20px;">
+style="margin-top:20px">
 
-<div id="ecg"></div>
+<div id="ecg">
+
+</div>
 
 </div>
 
 
 
-<!-- STATUS -->
 
 <div
 class="status"
@@ -172,11 +195,12 @@ MENUNGGU...
 
 </div>
 
+
 </div>
 
+</div>
 
-
-<script src="index.js?v=300"></script>
+<script src="index.js?v=999"></script>
 
 </body>
 </html>
