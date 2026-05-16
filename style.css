@@ -1,5 +1,5 @@
 /* =========================
-   GLOBAL
+   RESET
 ========================= */
 
 *{
@@ -8,13 +8,12 @@
     box-sizing:border-box;
 }
 
-html{
+html,body{
     width:100%;
+    min-height:100%;
 }
 
 body{
-    width:100%;
-    min-height:100vh;
     background:#050b2e;
     color:white;
     font-family:Arial,sans-serif;
@@ -27,86 +26,83 @@ body{
 
 .container{
     width:100%;
-    max-width:1600px;
     margin:auto;
-    padding:20px;
+    padding:12px;
 }
+
+/* =========================
+   TITLE
+========================= */
 
 h1{
     text-align:center;
-    margin-bottom:20px;
-    font-size:32px;
-    letter-spacing:1px;
+    margin-bottom:15px;
+    font-size:22px;
 }
 
 /* =========================
-   CARD SENSOR
+   CARD
 ========================= */
 
 .cards{
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
-    gap:15px;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
 }
 
 .card{
+    width:100%;
     background:#0b0f4a;
-    padding:20px;
+    padding:16px;
     border-radius:16px;
-
     text-align:center;
-
-    box-shadow:
-    0 0 20px rgba(0,255,255,.08);
-
-    transition:.3s;
-}
-
-.card:hover{
-    transform:translateY(-5px);
-}
-
-.card h2{
-    margin-top:10px;
-    font-size:28px;
-}
-
-/* =========================
-   GRID TENGAH
-========================= */
-
-.grid{
-    display:grid;
-    grid-template-columns:2.5fr 1fr;
-    gap:15px;
-
-    margin-top:20px;
-}
-
-/* =========================
-   GRAFIK
-========================= */
-
-.charts{
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
-    gap:15px;
-}
-
-.chart-box{
-    background:black;
-    border-radius:16px;
-
-    padding:10px;
-
-    overflow:hidden;
 
     box-shadow:
     0 0 15px rgba(0,255,255,.08);
 }
 
+.card h2{
+    margin-top:8px;
+    font-size:22px;
+}
 
-/* penting agar plotly tidak keluar */
+/* =========================
+   GRID
+========================= */
+
+.grid{
+    display:flex;
+    flex-direction:column;
+    gap:15px;
+    margin-top:15px;
+}
+
+/* =========================
+   CHART
+========================= */
+
+.charts{
+    display:flex;
+    flex-direction:column;
+    gap:15px;
+}
+
+.chart-box{
+
+    width:100%;
+
+    background:black;
+
+    border-radius:16px;
+
+    padding:8px;
+
+    overflow:hidden;
+
+    box-shadow:
+    0 0 15px rgba(0,255,255,.08);
+
+}
 
 #chartTemp,
 #chartSpo2,
@@ -131,7 +127,7 @@ h1{
 #gauge1,
 #gauge2,
 #gauge3{
-    height:240px;
+    height:210px;
 }
 
 /* =========================
@@ -139,8 +135,7 @@ h1{
 ========================= */
 
 #ecg{
-    width:100%;
-    height:250px;
+    height:220px;
 }
 
 /* =========================
@@ -149,7 +144,7 @@ h1{
 
 .status{
 
-    margin-top:20px;
+    margin-top:15px;
 
     background:#0b0f4a;
 
@@ -159,34 +154,30 @@ h1{
 
     text-align:center;
 
-    font-size:28px;
+    font-size:20px;
 
     font-weight:bold;
-
-    box-shadow:
-    0 0 15px rgba(0,255,255,.1);
-
 }
+
 
 /* =========================
    TABLET
 ========================= */
 
-@media screen and (max-width:1024px){
+@media(min-width:768px){
+
+.container{
+padding:15px;
+}
 
 .cards{
+
+display:grid;
+
 grid-template-columns:
 repeat(2,1fr);
-}
 
-.grid{
-grid-template-columns:
-1fr;
-}
-
-.charts{
-grid-template-columns:
-1fr;
+gap:15px;
 }
 
 .gauges{
@@ -194,86 +185,103 @@ grid-template-columns:
 display:grid;
 
 grid-template-columns:
-repeat(3,1fr);
+repeat(2,1fr);
 
-gap:10px;
-}
-
-#gauge1,
-#gauge2,
-#gauge3{
-height:220px;
-}
-
-}
-
-/* =========================
-   HP
-========================= */
-
-@media screen and (max-width:768px){
-
-.container{
-padding:10px;
-}
-
-.cards{
-grid-template-columns:1fr;
-}
-
-.charts{
-grid-template-columns:1fr;
-}
-
-.gauges{
-display:flex;
-flex-direction:column;
-}
-
-#gauge1,
-#gauge2,
-#gauge3{
-height:200px;
+gap:15px;
 }
 
 h1{
-font-size:24px;
-}
-
-.card h2{
-font-size:22px;
+font-size:28px;
 }
 
 .status{
-font-size:20px;
+font-size:24px;
+}
+
+}
+
+
+/* =========================
+   DESKTOP
+========================= */
+
+@media(min-width:1200px){
+
+.container{
+
+max-width:1600px;
+
+padding:20px;
+
+}
+
+.cards{
+
+grid-template-columns:
+repeat(3,1fr);
+
+}
+
+.grid{
+
+display:grid;
+
+grid-template-columns:
+2.5fr 1fr;
+
+gap:20px;
+
+}
+
+.charts{
+
+display:grid;
+
+grid-template-columns:
+repeat(3,1fr);
+
+gap:15px;
+
+}
+
+.gauges{
+
+display:flex;
+
+flex-direction:column;
+
+}
+
+#gauge1,
+#gauge2,
+#gauge3{
+
+height:240px;
+
+}
+
+h1{
+font-size:34px;
+}
+
+.status{
+font-size:28px;
 }
 
 }
 
 /* =========================
-   HP KECIL
+   MONITOR BESAR
 ========================= */
 
-@media screen and (max-width:480px){
+@media(min-width:1600px){
 
 .container{
-padding:5px;
-}
-
-.card{
-padding:15px;
-}
-
-.chart-box{
-padding:5px;
+max-width:1800px;
 }
 
 .card h2{
-font-size:18px;
-}
-
-h1{
-font-size:20px;
+font-size:30px;
 }
 
 }
