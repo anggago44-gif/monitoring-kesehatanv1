@@ -1,16 +1,15 @@
 // ================= MQTT =================
 
-const client =
-mqtt.connect(
+const client = mqtt.connect(
 "wss://broker.hivemq.com:8884/mqtt"
 );
 
-let x=0;
+let x = 0;
 
 
 // ================= LAYOUT =================
 
-const darkLayout={
+const darkLayout = {
 
 paper_bgcolor:"black",
 
@@ -38,10 +37,13 @@ Plotly.newPlot(
 [{
 x:[],
 y:[],
+mode:"lines",
+
 line:{
 color:"cyan",
 width:3
 }
+
 }],
 
 {
@@ -51,16 +53,20 @@ title:"Suhu"
 );
 
 
+
 Plotly.newPlot(
 "chartSpo2",
 
 [{
 x:[],
 y:[],
+mode:"lines",
+
 line:{
 color:"lime",
 width:3
 }
+
 }],
 
 {
@@ -77,10 +83,13 @@ Plotly.newPlot(
 [{
 x:[],
 y:[],
+mode:"lines",
+
 line:{
 color:"red",
 width:3
 }
+
 }],
 
 {
@@ -98,16 +107,23 @@ for(let i=0;i<50;i++){
 ecgData.push(0);
 }
 
+
 Plotly.newPlot(
+
 "ecg",
 
 [{
 
 y:ecgData,
 
+mode:"lines",
+
 line:{
+
 color:"lime",
+
 width:2
+
 }
 
 }],
@@ -119,12 +135,15 @@ width:2
 title:"ECG Monitor",
 
 xaxis:{
-showgrid:false,
+
 visible:false
+
 },
 
 yaxis:{
+
 showgrid:false
+
 }
 
 }
@@ -156,8 +175,7 @@ value:value,
 
 number:{
 
-suffix:
-" "+unit,
+suffix:" "+unit,
 
 font:{
 size:28
@@ -172,10 +190,15 @@ range:[0,max]
 },
 
 bar:{
-color:color
+color:color,
+thickness:.35
 },
 
 bgcolor:"black",
+
+bordercolor:"#333",
+
+borderwidth:2,
 
 steps:[
 
@@ -201,9 +224,22 @@ color:"#330000"
 }],
 
 {
+
 paper_bgcolor:"black",
-font:{color:"white"},
-height:220
+
+font:{
+color:"white"
+},
+
+height:220,
+
+margin:{
+t:20,
+b:20,
+l:10,
+r:10
+}
+
 }
 
 );
@@ -211,48 +247,81 @@ height:220
 }
 
 
-// ================= MQTT =================
+
+// ================= MQTT CONNECT =================
 
 client.on(
+
 "connect",
 
 ()=>{
 
 console.log(
-"MQTT CONNECTED"
+"MQTT CONNECTED ✅"
 );
 
 client.subscribe(
-"sensorReadings"
+
+"sensorReadings",
+
+(err)=>{
+
+if(err){
+
+console.log(
+"SUBSCRIBE ERROR"
+);
+
+}else{
+
+console.log(
+"SUBSCRIBE SUCCESS"
 );
 
 }
+
+});
+
+}
+
 );
 
 
 // ================= DATA =================
 
 client.on(
+
 "message",
 
 (topic,msg)=>{
 
 try{
 
+
 let data=
+
 JSON.parse(
 msg.toString()
 );
+
+
+console.log(
+"DATA:",
+data
+);
+
 
 let suhu=
 Number(
 data.temperature||0
 );
 
+
 let spo2=
 Number(
 data.spo2||0
 );
+
 
 let hr=
 Number(
@@ -265,44 +334,71 @@ data.heartRate||0
 document.getElementById(
 "temp"
 ).innerHTML=
-suhu.toFixed(1)+"°C";
+suhu.toFixed(1)
++"°C";
 
 
 document.getElementById(
 "spo2"
 ).innerHTML=
-spo2+"%";
+spo2
++"%";
 
 
 document.getElementById(
 "hr"
 ).innerHTML=
-hr+" bpm";
+hr
++" bpm";
 
 
 
-// CHART
+// GRAFIK
 
 Plotly.extendTraces(
+
 "chartTemp",
-{x:[[x]],y:[[suhu]]},
+
+{
+x:[[x]],
+y:[[suhu]]
+},
+
 [0]
+
 );
 
+
 Plotly.extendTraces(
+
 "chartSpo2",
-{x:[[x]],y:[[spo2]]},
+
+{
+x:[[x]],
+y:[[spo2]]
+},
+
 [0]
+
 );
+
 
 Plotly.extendTraces(
+
 "chartHR",
-{x:[[x]],y:[[hr]]},
+
+{
+x:[[x]],
+y:[[hr]]
+},
+
 [0]
+
 );
 
 
-// BATAS DATA
+
+// batasi data
 
 [
 "chartTemp",
@@ -312,25 +408,37 @@ Plotly.extendTraces(
 ].forEach(id=>{
 
 Plotly.relayout(
+
 id,
+
 {
+
 "xaxis.range":[
 Math.max(0,x-20),
 x
 ]
+
 }
+
 );
 
 });
 
 
 
-// GAUGE
 
-let hrColor=
-hr>100
-?"red"
-:"lime";
+// WARNA HR
+
+let hrColor="lime";
+
+if(hr>100){
+
+hrColor="red";
+
+}
+
+
+// ================= GAUGE
 
 drawGauge(
 "gauge1",
@@ -340,6 +448,7 @@ suhu,
 "°C"
 );
 
+
 drawGauge(
 "gauge2",
 spo2,
@@ -347,6 +456,7 @@ spo2,
 100,
 "%"
 );
+
 
 drawGauge(
 "gauge3",
@@ -357,22 +467,36 @@ hrColor,
 );
 
 
+
+
 // ECG
 
 ecgData.shift();
 
 ecgData.push(
-Math.sin(x/2)
+
+Math.sin(
+x/2
+)
+
 +
+
 Math.random()*0.3
+
 );
 
+
 Plotly.update(
+
 "ecg",
+
 {
 y:[ecgData]
 }
+
 );
+
+
 
 
 // STATUS
@@ -383,28 +507,39 @@ let status=
 let color=
 "lime";
 
+
 if(
 hr>100||
 spo2<95||
 suhu>37.5
 ){
-status="BAHAYA";
-color="red";
+
+status=
+"BAHAYA";
+
+color=
+"red";
+
 }
+
 
 document.getElementById(
 "status"
 ).innerHTML=
 status;
 
+
 document.getElementById(
 "status"
 ).style.color=
 color;
 
+
 x++;
 
-}catch(e){
+}
+
+catch(e){
 
 console.log(
 "JSON ERROR",
@@ -416,12 +551,10 @@ e
 });
 
 
+
 // ================= RESPONSIVE =================
 
-window.addEventListener(
-"resize",
-
-()=>{
+function resizeCharts(){
 
 [
 "chartTemp",
@@ -431,10 +564,25 @@ window.addEventListener(
 
 ].forEach(id=>{
 
-Plotly.Plots.resize(
-document.getElementById(id)
+const el=
+document.getElementById(id);
+
+if(el){
+
+Plotly.Plots.resize(el);
+
+}
+
+});
+
+}
+
+window.addEventListener(
+"load",
+resizeCharts
 );
 
-});
-
-});
+window.addEventListener(
+"resize",
+resizeCharts
+);
