@@ -1,108 +1,98 @@
-/* =========================
+/* =====================
    RESET
-========================= */
+===================== */
 
 *{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
 }
 
 html,body{
-    width:100%;
-    min-height:100%;
+  width:100%;
+  overflow-x:hidden;
 }
 
 body{
-    background:#050b2e;
-    color:white;
-    font-family:Arial,sans-serif;
-    overflow-x:hidden;
+  background:#050b2e;
+  color:white;
+  font-family:Arial,sans-serif;
 }
 
-/* =========================
+/* =====================
    CONTAINER
-========================= */
+===================== */
 
 .container{
-    width:100%;
-    margin:auto;
-    padding:12px;
+  width:100%;
+  padding:12px;
 }
-
-/* =========================
-   TITLE
-========================= */
 
 h1{
-    text-align:center;
-    margin-bottom:15px;
-    font-size:22px;
+  text-align:center;
+  font-size:22px;
+  margin-bottom:15px;
 }
 
-/* =========================
-   CARD
-========================= */
+/* =====================
+   CARD SENSOR
+===================== */
 
 .cards{
-    display:flex;
-    flex-direction:column;
-    gap:12px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
 }
 
 .card{
-    width:100%;
-    background:#0b0f4a;
-    padding:16px;
-    border-radius:16px;
-    text-align:center;
+  width:100%;
+  background:#0b0f4a;
+  border-radius:16px;
+  padding:16px;
+  text-align:center;
 
-    box-shadow:
-    0 0 15px rgba(0,255,255,.08);
+  box-shadow:
+  0 0 15px rgba(0,255,255,.08);
 }
 
 .card h2{
-    margin-top:8px;
-    font-size:22px;
+  margin-top:8px;
+  font-size:20px;
 }
 
-/* =========================
+/* =====================
    GRID
-========================= */
+===================== */
 
 .grid{
-    display:flex;
-    flex-direction:column;
-    gap:15px;
-    margin-top:15px;
+  display:flex;
+  flex-direction:column;
+  gap:15px;
+  margin-top:15px;
 }
 
-/* =========================
+/* =====================
    CHART
-========================= */
+===================== */
 
 .charts{
-    display:flex;
-    flex-direction:column;
-    gap:15px;
+  display:flex;
+  flex-direction:column;
+  gap:15px;
 }
 
 .chart-box{
+  width:100%;
+  background:black;
+  border-radius:16px;
+  padding:8px;
+  overflow:hidden;
 
-    width:100%;
-
-    background:black;
-
-    border-radius:16px;
-
-    padding:8px;
-
-    overflow:hidden;
-
-    box-shadow:
-    0 0 15px rgba(0,255,255,.08);
-
+  box-shadow:
+  0 0 10px rgba(0,255,255,.08);
 }
+
+/* Plotly wajib */
 
 #chartTemp,
 #chartSpo2,
@@ -111,177 +101,153 @@ h1{
 #gauge1,
 #gauge2,
 #gauge3{
-    width:100%!important;
+   width:100%!important;
 }
 
-/* =========================
-   GAUGE
-========================= */
+/* tinggi mobile */
 
-.gauges{
-    display:flex;
-    flex-direction:column;
-    gap:15px;
+#chartTemp,
+#chartSpo2,
+#chartHR{
+   height:250px;
 }
 
 #gauge1,
 #gauge2,
 #gauge3{
-    height:210px;
+   height:220px;
 }
-
-/* =========================
-   ECG
-========================= */
 
 #ecg{
-    height:220px;
+   height:220px;
 }
 
-/* =========================
+/* =====================
    STATUS
-========================= */
+===================== */
 
 .status{
 
-    margin-top:15px;
+  margin-top:15px;
 
-    background:#0b0f4a;
+  background:#0b0f4a;
 
-    padding:15px;
+  padding:15px;
 
-    border-radius:15px;
+  border-radius:16px;
 
-    text-align:center;
+  text-align:center;
 
-    font-size:20px;
+  font-size:20px;
 
-    font-weight:bold;
+  font-weight:bold;
+
 }
 
 
-/* =========================
+/* =====================
    TABLET
-========================= */
+===================== */
 
 @media(min-width:768px){
 
 .container{
-padding:15px;
+   padding:18px;
 }
 
 .cards{
+   display:grid;
+   grid-template-columns:
+   repeat(2,1fr);
 
-display:grid;
-
-grid-template-columns:
-repeat(2,1fr);
-
-gap:15px;
+   gap:15px;
 }
 
 .gauges{
+   display:grid;
+   grid-template-columns:
+   repeat(2,1fr);
 
-display:grid;
-
-grid-template-columns:
-repeat(2,1fr);
-
-gap:15px;
+   gap:15px;
 }
 
 h1{
-font-size:28px;
+   font-size:28px;
 }
 
 .status{
-font-size:24px;
+   font-size:24px;
 }
 
 }
 
 
-/* =========================
+/* =====================
    DESKTOP
-========================= */
+===================== */
 
 @media(min-width:1200px){
 
 .container{
-
-max-width:1600px;
-
-padding:20px;
-
+   max-width:1600px;
+   margin:auto;
+   padding:20px;
 }
 
 .cards{
-
-grid-template-columns:
-repeat(3,1fr);
-
+   grid-template-columns:
+   repeat(3,1fr);
 }
 
 .grid{
 
-display:grid;
+   display:grid;
 
-grid-template-columns:
-2.5fr 1fr;
+   grid-template-columns:
+   2.5fr 1fr;
 
-gap:20px;
+   gap:20px;
 
 }
 
 .charts{
 
-display:grid;
+   display:grid;
 
-grid-template-columns:
-repeat(3,1fr);
+   grid-template-columns:
+   repeat(3,1fr);
 
-gap:15px;
-
+   gap:15px;
 }
 
 .gauges{
-
-display:flex;
-
-flex-direction:column;
-
+   display:flex;
+   flex-direction:column;
 }
 
 #gauge1,
 #gauge2,
 #gauge3{
-
-height:240px;
-
+   height:250px;
 }
 
 h1{
-font-size:34px;
+   font-size:34px;
 }
 
 .status{
-font-size:28px;
+   font-size:28px;
 }
 
 }
 
-/* =========================
-   MONITOR BESAR
-========================= */
+
+/* monitor besar */
 
 @media(min-width:1600px){
 
 .container{
-max-width:1800px;
-}
-
-.card h2{
-font-size:30px;
+   max-width:1800px;
 }
 
 }
