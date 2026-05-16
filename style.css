@@ -1,253 +1,254 @@
-/* =====================
-   RESET
-===================== */
-
 *{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
-}
-
-html,body{
-  width:100%;
-  overflow-x:hidden;
+margin:0;
+padding:0;
+box-sizing:border-box;
 }
 
 body{
-  background:#050b2e;
-  color:white;
-  font-family:Arial,sans-serif;
+background:#050b2e;
+color:white;
+font-family:Arial,sans-serif;
+overflow-x:hidden;
 }
 
-/* =====================
-   CONTAINER
-===================== */
-
 .container{
-  width:100%;
-  padding:12px;
+width:100%;
+padding:12px;
 }
 
 h1{
-  text-align:center;
-  font-size:22px;
-  margin-bottom:15px;
+text-align:center;
+font-size:24px;
+margin-bottom:20px;
 }
 
-/* =====================
-   CARD SENSOR
-===================== */
+
+/* standby */
+
+.standby{
+
+background:#07123a;
+
+padding:25px;
+
+border-radius:20px;
+
+text-align:center;
+
+margin-bottom:20px;
+
+}
+
+.standby button{
+
+margin-top:20px;
+
+padding:12px;
+
+background:cyan;
+
+border:none;
+
+border-radius:10px;
+
+cursor:pointer;
+
+font-weight:bold;
+
+}
+
+
+
+/* card */
 
 .cards{
-  display:flex;
-  flex-direction:column;
-  gap:12px;
+
+display:flex;
+
+flex-direction:column;
+
+gap:12px;
+
 }
 
 .card{
-  width:100%;
-  background:#0b0f4a;
-  border-radius:16px;
-  padding:16px;
-  text-align:center;
 
-  box-shadow:
-  0 0 15px rgba(0,255,255,.08);
+background:#0b0f4a;
+
+padding:16px;
+
+border-radius:15px;
+
+text-align:center;
+
 }
 
 .card h2{
-  margin-top:8px;
-  font-size:20px;
+
+margin-top:10px;
+
 }
 
-/* =====================
-   GRID
-===================== */
+
+/* chart */
 
 .grid{
-  display:flex;
-  flex-direction:column;
-  gap:15px;
-  margin-top:15px;
+
+display:flex;
+
+flex-direction:column;
+
+gap:15px;
+
+margin-top:15px;
+
 }
 
-/* =====================
-   CHART
-===================== */
-
 .charts{
-  display:flex;
-  flex-direction:column;
-  gap:15px;
+
+display:flex;
+
+flex-direction:column;
+
+gap:15px;
+
 }
 
 .chart-box{
-  width:100%;
-  background:black;
-  border-radius:16px;
-  padding:8px;
-  overflow:hidden;
 
-  box-shadow:
-  0 0 10px rgba(0,255,255,.08);
+background:black;
+
+padding:10px;
+
+border-radius:15px;
+
+overflow:hidden;
+
 }
 
-/* Plotly wajib */
 
-#chartTemp,
-#chartSpo2,
-#chartHR,
-#ecg,
-#gauge1,
-#gauge2,
-#gauge3{
-   width:100%!important;
-}
+/* gauge */
 
-/* tinggi mobile */
+.gauges{
 
-#chartTemp,
-#chartSpo2,
-#chartHR{
-   height:250px;
+display:flex;
+
+flex-direction:column;
+
+gap:15px;
+
 }
 
 #gauge1,
 #gauge2,
 #gauge3{
-   height:220px;
+
+height:220px;
+
 }
+
+
+/* ecg */
 
 #ecg{
-   height:220px;
+
+height:220px;
+
 }
 
-/* =====================
-   STATUS
-===================== */
+
+/* status */
 
 .status{
 
-  margin-top:15px;
+margin-top:20px;
 
-  background:#0b0f4a;
+padding:15px;
 
-  padding:15px;
+background:#0b0f4a;
 
-  border-radius:16px;
+border-radius:15px;
 
-  text-align:center;
+text-align:center;
 
-  font-size:20px;
+font-size:22px;
 
-  font-weight:bold;
+font-weight:bold;
 
 }
 
 
-/* =====================
-   TABLET
-===================== */
+
+/* tablet */
 
 @media(min-width:768px){
 
-.container{
-   padding:18px;
-}
-
 .cards{
-   display:grid;
-   grid-template-columns:
-   repeat(2,1fr);
 
-   gap:15px;
+display:grid;
+
+grid-template-columns:
+repeat(2,1fr);
+
 }
 
 .gauges{
-   display:grid;
-   grid-template-columns:
-   repeat(2,1fr);
 
-   gap:15px;
-}
+display:grid;
 
-h1{
-   font-size:28px;
-}
+grid-template-columns:
+repeat(2,1fr);
 
-.status{
-   font-size:24px;
 }
 
 }
 
 
-/* =====================
-   DESKTOP
-===================== */
+/* desktop */
 
 @media(min-width:1200px){
 
 .container{
-   max-width:1600px;
-   margin:auto;
-   padding:20px;
+
+max-width:1600px;
+
+margin:auto;
+
+padding:20px;
+
 }
 
 .cards{
-   grid-template-columns:
-   repeat(3,1fr);
+
+grid-template-columns:
+repeat(3,1fr);
+
 }
 
 .grid{
 
-   display:grid;
+display:grid;
 
-   grid-template-columns:
-   2.5fr 1fr;
-
-   gap:20px;
+grid-template-columns:
+2.5fr 1fr;
 
 }
 
 .charts{
 
-   display:grid;
+display:grid;
 
-   grid-template-columns:
-   repeat(3,1fr);
+grid-template-columns:
+repeat(3,1fr);
 
-   gap:15px;
 }
 
 .gauges{
-   display:flex;
-   flex-direction:column;
-}
 
-#gauge1,
-#gauge2,
-#gauge3{
-   height:250px;
-}
+display:flex;
 
-h1{
-   font-size:34px;
-}
+flex-direction:column;
 
-.status{
-   font-size:28px;
-}
-
-}
-
-
-/* monitor besar */
-
-@media(min-width:1600px){
-
-.container{
-   max-width:1800px;
 }
 
 }
