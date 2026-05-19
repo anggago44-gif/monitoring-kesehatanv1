@@ -515,7 +515,7 @@ suhu>37.5
 ){
 
 status=
-"BAHAYA";
+"WASPADA";
 
 color=
 "red";
