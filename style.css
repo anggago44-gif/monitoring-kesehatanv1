@@ -1,7 +1,6 @@
 /* =====================
-   RESET
+   RESET & BASE
 ===================== */
-
 *{
   margin:0;
   padding:0;
@@ -22,7 +21,6 @@ body{
 /* =====================
    CONTAINER
 ===================== */
-
 .container{
   width:100%;
   padding:12px;
@@ -32,12 +30,12 @@ h1{
   text-align:center;
   font-size:22px;
   margin-bottom:15px;
+  letter-spacing:1px;
 }
 
 /* =====================
    CARD SENSOR
 ===================== */
-
 .cards{
   display:flex;
   flex-direction:column;
@@ -50,20 +48,17 @@ h1{
   border-radius:16px;
   padding:16px;
   text-align:center;
-
-  box-shadow:
-  0 0 15px rgba(0,255,255,.08);
+  box-shadow: 0 0 15px rgba(0,255,255,.08);
 }
 
 .card h2{
   margin-top:8px;
-  font-size:20px;
+  font-size:24px;
 }
 
 /* =====================
-   GRID
+   GRID UTAMA
 ===================== */
-
 .grid{
   display:flex;
   flex-direction:column;
@@ -72,9 +67,8 @@ h1{
 }
 
 /* =====================
-   CHART
+   CHART & BOX
 ===================== */
-
 .charts{
   display:flex;
   flex-direction:column;
@@ -87,167 +81,126 @@ h1{
   border-radius:16px;
   padding:8px;
   overflow:hidden;
-
-  box-shadow:
-  0 0 10px rgba(0,255,255,.08);
+  box-shadow: 0 0 10px rgba(0,255,255,.08);
 }
 
-/* Plotly wajib */
-
-#chartTemp,
-#chartSpo2,
-#chartHR,
-#ecg,
-#gauge1,
-#gauge2,
-#gauge3{
-   width:100%!important;
+/* Paksa Plotly memenuhi lebar box */
+#chartTemp, #chartSpo2, #chartHR, #chartTensi, #ecg,
+#gauge1, #gauge2, #gauge3, #gauge4 {
+   width:100% !important;
 }
 
-/* tinggi mobile */
-
-#chartTemp,
-#chartSpo2,
-#chartHR{
+/* Tinggi Grafik di Mobile */
+#chartTemp, #chartSpo2, #chartHR, #chartTensi{
    height:250px;
 }
 
-#gauge1,
-#gauge2,
-#gauge3{
-   height:220px;
-}
-
-#ecg{
+#gauge1, #gauge2, #gauge3, #gauge4, #ecg{
    height:220px;
 }
 
 /* =====================
-   STATUS
+   FOOTER SECTION (KONTROL & STATUS)
 ===================== */
+.footer-section {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.control-box {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.btn {
+  flex: 1;
+  padding: 15px;
+  font-size: 16px;
+  font-weight: bold;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  color: white;
+  transition: 0.2s;
+}
+
+.btn-start { background: #27ae60; }
+.btn-start:hover { background: #2ecc71; }
+.btn-stop { background: #c0392b; }
+.btn-stop:hover { background: #e74c3c; }
 
 .status{
-
-  margin-top:15px;
-
   background:#0b0f4a;
-
   padding:15px;
-
   border-radius:16px;
-
   text-align:center;
-
   font-size:20px;
-
   font-weight:bold;
-
+  box-shadow: 0 0 10px rgba(0,255,255,.05);
 }
 
-
 /* =====================
-   TABLET
+   MEDIA QUERY: TABLET (768px)
 ===================== */
-
 @media(min-width:768px){
+  .container{ padding:18px; }
+  h1{ font-size:28px; }
+  
+  .cards{
+     display:grid;
+     grid-template-columns: repeat(2,1fr);
+     gap:15px;
+  }
+  
+  .gauges{
+     display:grid;
+     grid-template-columns: repeat(2,1fr);
+     gap:15px;
+  }
 
-.container{
-   padding:18px;
+  .footer-section {
+    flex-direction: row;
+    align-items: center;
+  }
+  .control-box { flex: 1; }
+  .status { flex: 1; margin-top: 0; font-size: 24px; }
 }
-
-.cards{
-   display:grid;
-   grid-template-columns:
-   repeat(2,1fr);
-
-   gap:15px;
-}
-
-.gauges{
-   display:grid;
-   grid-template-columns:
-   repeat(2,1fr);
-
-   gap:15px;
-}
-
-h1{
-   font-size:28px;
-}
-
-.status{
-   font-size:24px;
-}
-
-}
-
 
 /* =====================
-   DESKTOP
+   MEDIA QUERY: DESKTOP (1200px)
 ===================== */
-
 @media(min-width:1200px){
-
-.container{
-   max-width:1600px;
-   margin:auto;
-   padding:20px;
+  .container{ max-width:1600px; margin:auto; padding:20px; }
+  h1{ font-size:34px; }
+  
+  .cards{ grid-template-columns: repeat(4,1fr); }
+  
+  .grid{
+     display:grid;
+     grid-template-columns: 2.5fr 1fr;
+     gap:20px;
+  }
+  
+  .charts{
+     display:grid;
+     grid-template-columns: repeat(3,1fr);
+     gap:15px;
+  }
+  
+  .gauges{
+     display:flex;
+     flex-direction:column;
+  }
+  
+  #gauge1, #gauge2, #gauge3, #gauge4{ height:230px; }
+  #chartTensi { height: 280px; }
+  .status{ font-size:28px; }
 }
 
-.cards{
-   grid-template-columns:
-   repeat(3,1fr);
-}
-
-.grid{
-
-   display:grid;
-
-   grid-template-columns:
-   2.5fr 1fr;
-
-   gap:20px;
-
-}
-
-.charts{
-
-   display:grid;
-
-   grid-template-columns:
-   repeat(3,1fr);
-
-   gap:15px;
-}
-
-.gauges{
-   display:flex;
-   flex-direction:column;
-}
-
-#gauge1,
-#gauge2,
-#gauge3{
-   height:250px;
-}
-
-h1{
-   font-size:34px;
-}
-
-.status{
-   font-size:28px;
-}
-
-}
-
-
-/* monitor besar */
-
+/* Monitor Layar Besar */
 @media(min-width:1600px){
-
-.container{
-   max-width:1800px;
-}
-
+  .container{ max-width:1800px; }
 }
