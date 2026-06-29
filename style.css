@@ -1,206 +1,118 @@
 /* =====================
-   RESET & BASE
+   RESET & BASE STYLING
 ===================== */
-*{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
-}
+*{ margin:0; padding:0; box-sizing:border-box; }
+html,body{ width:100%; overflow-x:hidden; }
+body{ background:#050b2e; color:white; font-family:Arial,sans-serif; }
+.container{ width:100%; padding:12px; }
+h1{ text-align:center; font-size:22px; margin-bottom:15px; letter-spacing:1px; }
 
-html,body{
-  width:100%;
-  overflow-x:hidden;
-}
+.cards{ display:flex; flex-direction:column; gap:12px; }
+.card{ width:100%; background:#0b0f4a; border-radius:16px; padding:16px; text-align:center; box-shadow:0 0 15px rgba(0,255,255,.08); }
+.card h2{ margin-top:8px; font-size:24px; }
 
-body{
-  background:#050b2e;
-  color:white;
-  font-family:Arial,sans-serif;
-}
+/* LAYOUT STRUCTURING */
+.grid{ display:flex; flex-direction:column; gap:15px; margin-top:15px; }
+.left-sector { display:flex; flex-direction:column; gap:15px; width:100%; }
+.charts{ display:flex; flex-direction:column; gap:15px; }
+.chart-box{ width:100%; background:black; border-radius:16px; padding:8px; overflow:hidden; box-shadow:0 0 10px rgba(0,255,255,.08); }
 
-/* =====================
-   CONTAINER
-===================== */
-.container{
-  width:100%;
-  padding:12px;
-}
+#chartTemp, #chartSpo2, #chartHR, #chartTensi, #gauge1, #gauge2, #gauge3, #gauge4 { width:100%!important; }
+#chartTemp, #chartSpo2, #chartHR, #chartTensi{ height:230px; }
+#gauge1, #gauge2, #gauge3, #gauge4{ height:200px; }
 
-h1{
-  text-align:center;
-  font-size:22px;
-  margin-bottom:15px;
-  letter-spacing:1px;
-}
-
-/* =====================
-   CARD SENSOR
-===================== */
-.cards{
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-}
-
-.card{
-  width:100%;
-  background:#0b0f4a;
-  border-radius:16px;
-  padding:16px;
-  text-align:center;
-  box-shadow: 0 0 15px rgba(0,255,255,.08);
-}
-
-.card h2{
-  margin-top:8px;
-  font-size:24px;
-}
-
-/* =====================
-   GRID UTAMA
-===================== */
-.grid{
-  display:flex;
-  flex-direction:column;
-  gap:15px;
-  margin-top:15px;
-}
-
-/* =====================
-   CHART & BOX
-===================== */
-.charts{
-  display:flex;
-  flex-direction:column;
-  gap:15px;
-}
-
-.chart-box{
-  width:100%;
-  background:black;
-  border-radius:16px;
-  padding:8px;
-  overflow:hidden;
-  box-shadow: 0 0 10px rgba(0,255,255,.08);
-}
-
-/* Paksa Plotly memenuhi lebar box */
-#chartTemp, #chartSpo2, #chartHR, #chartTensi, #ecg,
-#gauge1, #gauge2, #gauge3, #gauge4 {
-   width:100% !important;
-}
-
-/* Tinggi Grafik di Mobile */
-#chartTemp, #chartSpo2, #chartHR, #chartTensi{
-   height:250px;
-}
-
-#gauge1, #gauge2, #gauge3, #gauge4, #ecg{
-   height:220px;
-}
-
-/* =====================
-   FOOTER SECTION (KONTROL & STATUS)
-===================== */
-.footer-section {
+/* PANELS DI AREA BAWAH GRAFIK (OPSI B & C) */
+.info-layout {
   display: flex;
   flex-direction: column;
   gap: 15px;
+}
+.info-panel {
+  background: #0b0f4a;
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 0 15px rgba(0,255,255,.05);
+}
+.info-panel h3 { font-size: 15px; margin-bottom: 12px; font-weight: bold; letter-spacing: 0.5px; }
+.profile-box h3 { color: #00ffff; }
+.advice-box h3 { color: #f39c12; }
+
+/* Grid Profil Pasien */
+.profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px; line-height: 1.6; }
+.profile-grid p { border-bottom: 1px solid #141b66; padding-bottom: 4px; }
+
+/* Konten Rekomendasi Medis */
+.advice-content {
+  font-size: 14px;
+  line-height: 1.6;
+  background: #050b2e;
+  padding: 12px;
+  border-radius: 8px;
+  border-left: 4px solid #f39c12;
+  color: #ddd;
+}
+
+/* WORKFLOW SYSTEM PANEL */
+.workflow-box {
+  background: #0b0f4a;
+  border-radius: 16px;
+  padding: 20px;
   margin-top: 20px;
+  box-shadow: 0 0 15px rgba(0,255,255,.05);
 }
+.workflow-box h3 { font-size: 16px; margin-bottom: 15px; color: #2ecc71; text-align: center; }
+.steps-indicator { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
 
-.control-box {
-  display: flex;
-  gap: 10px;
-  width: 100%;
+.step { 
+  padding: 12px; 
+  background: #050b2e; 
+  border-radius: 8px; 
+  text-align: center; 
+  border-left: 5px solid #333; 
+  color: #666; 
+  transition: 0.3s; 
 }
-
-.btn {
-  flex: 1;
-  padding: 15px;
-  font-size: 16px;
+.step.active { 
+  border-left-color: #2ecc71; 
+  background: #112255; 
+  color: white; 
   font-weight: bold;
-  border: none;
-  border-radius: 12px;
-  cursor: pointer;
-  color: white;
-  transition: 0.2s;
+  animation: pulseGreen 1.5s infinite;
+}
+.step.done { border-left-color: #00ffff; color: #aaa; background: #070e38; }
+
+@keyframes pulseGreen {
+  0% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(46, 204, 113, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0); }
 }
 
-.btn-start { background: #27ae60; }
-.btn-start:hover { background: #2ecc71; }
+.workflow-controls { display: flex; flex-wrap: wrap; gap: 10px; }
+.btn { flex: 1; min-width: 140px; padding: 12px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; color: white; transition: 0.2s; }
+.btn-primary { background: #27ae60; }
+.btn-primary:hover { background: #2ecc71; }
+.btn-secondary { background: #2980b9; }
+.btn-secondary:hover { background: #3498db; }
 .btn-stop { background: #c0392b; }
 .btn-stop:hover { background: #e74c3c; }
+.btn:disabled { background: #1a1f4d !important; color: #555 !important; cursor: not-allowed; box-shadow: none !important; }
 
-.status{
-  background:#0b0f4a;
-  padding:15px;
-  border-radius:16px;
-  text-align:center;
-  font-size:20px;
-  font-weight:bold;
-  box-shadow: 0 0 10px rgba(0,255,255,.05);
-}
+.status-box-footer { background: #0b0f4a; padding: 15px; border-radius: 16px; text-align: center; font-size: 20px; font-weight: bold; margin-top: 15px; }
 
-/* =====================
-   MEDIA QUERY: TABLET (768px)
-===================== */
+/* RESPONSIVE DESIGN ADJUSTMENTS */
 @media(min-width:768px){
-  .container{ padding:18px; }
-  h1{ font-size:28px; }
-  
-  .cards{
-     display:grid;
-     grid-template-columns: repeat(2,1fr);
-     gap:15px;
-  }
-  
-  .gauges{
-     display:grid;
-     grid-template-columns: repeat(2,1fr);
-     gap:15px;
-  }
-
-  .footer-section {
-    flex-direction: row;
-    align-items: center;
-  }
-  .control-box { flex: 1; }
-  .status { flex: 1; margin-top: 0; font-size: 24px; }
+  .cards { display:grid; grid-template-columns: repeat(2,1fr); gap:15px; }
+  .gauges { display:grid; grid-template-columns: repeat(2,1fr); gap:15px; }
+  .info-layout { flex-direction: row; }
+  .info-panel { flex: 1; }
+  .steps-indicator { flex-direction: row; }
+  .step { flex: 1; }
 }
 
-/* =====================
-   MEDIA QUERY: DESKTOP (1200px)
-===================== */
 @media(min-width:1200px){
-  .container{ max-width:1600px; margin:auto; padding:20px; }
-  h1{ font-size:34px; }
-  
-  .cards{ grid-template-columns: repeat(4,1fr); }
-  
-  .grid{
-     display:grid;
-     grid-template-columns: 2.5fr 1fr;
-     gap:20px;
-  }
-  
-  .charts{
-     display:grid;
-     grid-template-columns: repeat(3,1fr);
-     gap:15px;
-  }
-  
-  .gauges{
-     display:flex;
-     flex-direction:column;
-  }
-  
-  #gauge1, #gauge2, #gauge3, #gauge4{ height:230px; }
-  #chartTensi { height: 280px; }
-  .status{ font-size:28px; }
-}
-
-/* Monitor Layar Besar */
-@media(min-width:1600px){
-  .container{ max-width:1800px; }
+  .cards { grid-template-columns: repeat(4,1fr); }
+  .grid { display:grid; grid-template-columns: 2.5fr 1fr; gap:20px; }
+  .charts { display:grid; grid-template-columns: repeat(3,1fr); gap:15px; }
+  .gauges { display:flex; flex-direction:column; }
+  #gauge1, #gauge2, #gauge3, #gauge4 { height: 235px; } /* Seimbang presisi secara visual */
 }
