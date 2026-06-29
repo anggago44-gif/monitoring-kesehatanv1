@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#050b2e">
     <title>Monitoring Kesehatan</title>
-    <link rel="stylesheet" href="style.css?v=306">
+    <link rel="stylesheet" href="style.css?v=308">
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 </head>
@@ -36,31 +36,10 @@
     </section>
 
     <section class="grid">
-        <div class="left-sector">
-            <div class="charts">
-                <div class="chart-box"><div id="chartTemp"></div></div>
-                <div class="chart-box"><div id="chartSpo2"></div></div>
-                <div class="chart-box"><div id="chartHR"></div></div>
-            </div>
-
-            <div class="info-layout">
-                <div class="info-panel profile-box">
-                    <h3>👤 Profil Pasien Aktif</h3>
-                    <div class="profile-grid">
-                        <p><strong>Nama:</strong> <span id="p-name">Tn. Ahmad Subarjo</span></p>
-                        <p><strong>ID/RM:</strong> <span>RM-2026-0028</span></p>
-                        <p><strong>Usia:</strong> <span>48 Tahun</span></p>
-                        <p><strong>Gender:</strong> <span>Laki-laki</span></p>
-                    </div>
-                </div>
-
-                <div class="info-panel advice-box">
-                    <h3>💡 Sistem Pendukung Keputusan Klinis</h3>
-                    <div id="medical-advice" class="advice-content">
-                        Sistem siap. Silakan klik <strong>"MULAI PERIKSA LENGKAP"</strong> di bawah untuk memulai pemeriksaan terpandu step-by-step.
-                    </div>
-                </div>
-            </div>
+        <div class="charts">
+            <div class="chart-box"><div id="chartTemp"></div></div>
+            <div class="chart-box"><div id="chartSpo2"></div></div>
+            <div class="chart-box"><div id="chartHR"></div></div>
         </div>
 
         <aside class="gauges">
@@ -71,8 +50,31 @@
         </aside>
     </section>
 
+    <section class="info-layout">
+        <div class="info-panel profile-box">
+            <h3>👤 Profil Pasien Aktif</h3>
+            <div class="profile-grid">
+                <p><strong>Nama:</strong> <span id="p-name">Tn. Ahmad Subarjo</span></p>
+                <p><strong>ID/RM:</strong> <span>RM-2026-0028</span></p>
+                <p><strong>Usia:</strong> <span>48 Tahun</span></p>
+                <p><strong>Gender:</strong> <span>Laki-laki</span></p>
+            </div>
+        </div>
+
+        <div class="info-panel advice-box">
+            <h3>💡 Sistem Pendukung Keputusan Klinis</h3>
+            <div id="medical-advice" class="advice-content">
+                Sistem siap. Silakan klik <strong>"MULAI PERIKSA LENGKAP"</strong> di bawah untuk memulai alur pemeriksaan terpandu.
+            </div>
+        </div>
+    </section>
+
     <section class="chart-box" style="margin-top:20px">
         <div id="chartTensi"></div>
+    </section>
+
+    <section class="chart-box" style="margin-top:20px">
+        <div id="ecg"></div>
     </section>
 
     <section class="workflow-box">
@@ -95,6 +97,6 @@
     </section>
 </div>
 
-<script src="index.js?v=306"></script>
+<script src="index.js?v=308"></script>
 </body>
 </html>
