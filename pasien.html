@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manajemen Pasien - Monitoring Kesehatan</title>
+    <link rel="stylesheet" href="style.css?v=316">
+</head>
+<body>
+
+<div class="container">
+    <nav class="navbar">
+        <a href="index.html" class="nav-item">📈 Dashboard Utama</a>
+        <a href="pasien.html" class="nav-item active">👤 Manajemen Pasien</a>
+    </nav>
+
+    <header style="margin-top: 20px;">
+        <h1>REGISTRASI & MANAJEMEN PASIEN</h1>
+    </header>
+
+    <section class="info-layout" style="margin-top: 20px;">
+        <div class="info-panel" style="background: #0b0f4a;">
+            <h3 style="color: #f39c12; border-bottom: 1px solid #141b66; padding-bottom: 8px; margin-bottom: 15px;">👤 Input Identitas Pasien Baru</h3>
+            
+            <div class="form-page-layout" style="display: flex; flex-direction: column; gap: 12px;">
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label style="font-size: 13px; color: #aaa;">Nama Lengkap Pasien:</label>
+                    <input type="text" id="input-nama-pasien" placeholder="Masukkan nama..." style="padding: 12px; border-radius: 8px; border: 1px solid #141b66; background: #050b2e; color: white;">
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label style="font-size: 13px; color: #aaa;">Nomor Rekam Medis (ID/RM):</label>
+                    <input type="text" id="input-rm-pasien" placeholder="Contoh: RM-2026-0028..." style="padding: 12px; border-radius: 8px; border: 1px solid #141b66; background: #050b2e; color: white;">
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label style="font-size: 13px; color: #aaa;">Usia Pasien:</label>
+                    <input type="text" id="input-usia-pasien" placeholder="Contoh: 23 Tahun..." style="padding: 12px; border-radius: 8px; border: 1px solid #141b66; background: #050b2e; color: white;">
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label style="font-size: 13px; color: #aaa;">Jenis Kelamin (Gender):</label>
+                    <select id="input-gender-pasien" style="padding: 12px; border-radius: 8px; border: 1px solid #141b66; background: #050b2e; color: white; cursor: pointer;">
+                        <option value="">-- Pilih Jenis Kelamin --</option>
+                        <option value="Laki-laki">Laki-laki</option>
+                        <option value="Perempuan">Perempuan</option>
+                    </select>
+                </div>
+
+                <button onclick="updateProfilPasien()" style="margin-top: 10px; padding: 14px; background: #27ae60; border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; font-size: 14px; letter-spacing: 0.5px;">💾 SIMPAN & AKTIFKAN PROFIL PASIEN</button>
+            </div>
+        </div>
+
+        <div class="info-panel profile-box">
+            <h3>🟢 Pasien Aktif Saat Ini</h3>
+            <div class="profile-grid" style="margin-bottom: 20px;">
+                <p><strong>Nama:</strong> <span id="p-name">Menyiapkan...</span></p>
+                <p><strong>ID/RM:</strong> <span id="p-rm">Menyiapkan...</span></p>
+                <p><strong>Usia:</strong> <span id="p-age">Menyiapkan...</span></p>
+                <p><strong>Gender:</strong> <span id="p-gender">Menyiapkan...</span></p>
+            </div>
+            <p style="font-size: 12px; color: #888; line-height: 1.4; background: #050b2e; padding: 10px; border-radius: 6px;">
+                *Profil di atas adalah pasien yang akan direkam datanya jika Anda menjalankan pengujian alat di halaman Dashboard Utama.
+            </p>
+            
+            <button class="btn-log btn-clear" onclick="hapusSemuaRiwayat()" style="width: 100%; margin-top: 15px; padding: 10px; background: #7f8c8d; border-radius: 6px; font-size: 12px;">🗑️ Kosongkan Seluruh Log Riwayat Medis</button>
+        </div>
+    </section>
+</div>
+
+<script style="display:none;">
+    // Script internal khusus halaman pasien untuk sinkronisasi LocalStorage
+    function muatProfil() {
+        let tersimpan = localStorage.getItem("profilPasienAktif");
+        if (tersimpan) {
+            let p = JSON.parse(tersimpan);
+            document.getElementById("p-name").innerText = p.nama;
+            document.getElementById("p-rm").innerText = p.rm;
+            document.getElementById("p-age").innerText = p.usia;
+            document.getElementById("p-gender").innerText = p.gender;
+        } else {
+            document.getElementById("p-name").innerText = "Tn. Ahmad Subarjo";
+            document.getElementById("p-rm").innerText = "RM-2026-0028";
+            document.getElementById("p-age").innerText = "48 Tahun";
+            document.getElementById("p-gender").innerText = "Laki-laki";
+        }
+    }
+
+    function updateProfilPasien() {
+        let vNama = document.getElementById("input-nama-pasien").value.trim();
+        let vRm = document.getElementById("input-rm-pasien").value.trim();
+        let vUsia = document.getElementById("input-usia-pasien").value.trim();
+        let vGender = document.getElementById("input-gender-pasien").value;
+
+        if(!vNama || !vRm) { alert("Nama Pasien dan No. RM wajib diisi!"); return; }
+
+        let profilBaru = { nama: vNama, rm: vRm, usia: vUsia || "-", gender: vGender || "-" };
+        localStorage.setItem("profilPasienAktif", JSON.stringify(profilBaru));
+        
+        alert("Profil pasien berhasil diperbarui! Silakan kembali ke Dashboard untuk mulai menguji.");
+        muatProfil();
+
+        document.getElementById("input-nama-pasien").value = "";
+        document.getElementById("input-rm-pasien").value = "";
+        document.getElementById("input-usia-pasien").value = "";
+        document.getElementById("input-gender-pasien").value = "";
+    }
+
+    function hapusSemuaRiwayat() {
+        if(confirm("Apakah Anda yakin ingin menghapus TOTAL semua riwayat log pasien?")) {
+            localStorage.removeItem("riwayatMedisPasien");
+            alert("Seluruh log riwayat telah dikosongkan.");
+        }
+    }
+
+    window.onload = muatProfil;
+</script>
+</body>
+</html>
