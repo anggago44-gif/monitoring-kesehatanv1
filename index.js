@@ -36,12 +36,6 @@ Plotly.newPlot("chartSpo2", [{ x: [], y: [], mode: "lines", line: { color: "lime
 Plotly.newPlot("chartHR", [{ x: [], y: [], mode: "lines", line: { color: "red", width: 3.5 } }], { ...darkLayout, title: "Tren Heart Rate (BPM)" });
 Plotly.newPlot("chartTensi", [{ x: [], y: [], mode: "lines", line: { color: "orange", width: 3.5 } }], { ...darkLayout, title: "Grafik Tekanan Manset Real-time (mmHg)" });
 
-// ECG Monitor Wave array initialization
-let ecgData = Array(50).fill(0);
-Plotly.newPlot("ecg", [{ y: ecgData, mode: "lines", line: { color: "lime", width: 2.5 } }], { 
-    ...darkLayout, title: "ECG Monitor Waveform (Simulasi)", xaxis: { visible: false }, yaxis: { showgrid: false } 
-});
-
 // ================= DYNAMIC GAUGE GENERATOR (TEKS ANGKA DI-BESARKAN) =================
 function drawGauge(id, value, color, max, unit) {
   Plotly.newPlot(id, [{
@@ -130,11 +124,6 @@ client.on("message", (topic, msg) => {
     drawGauge("gauge2", spo2, "lime", 100, "%");
     drawGauge("gauge3", hr, hrColor, 150, "bpm");
     drawGauge("gauge4", mmHgLive, "orange", 200, "mmHg"); 
-
-    // Shift ECG Sinus Waveform Simulation
-    ecgData.shift();
-    ecgData.push(Math.sin(x / 2) + Math.random() * 0.3);
-    Plotly.update("ecg", { y: [ecgData] });
 
     // Global Indicator Kesimpulan Footer
     let statusText = "NORMAL";
@@ -225,7 +214,7 @@ function resetWorkflow() {
 
 // ================= AUTO RESPONSIVE LAYOUT TRIGGER =================
 function resizeCharts() {
-  ["chartTemp", "chartSpo2", "chartHR", "chartTensi", "ecg", "gauge1", "gauge2", "gauge3", "gauge4"].forEach(id => {
+  ["chartTemp", "chartSpo2", "chartHR", "chartTensi", "gauge1", "gauge2", "gauge3", "gauge4"].forEach(id => {
     const el = document.getElementById(id);
     if (el) { Plotly.Plots.resize(el); }
   });
