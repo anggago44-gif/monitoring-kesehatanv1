@@ -4,15 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#050b2e">
-    <title>Monitoring Kesehatan</title>
-    <link rel="stylesheet" href="style.css?v=313">
+    <title>Dashboard Monitoring Kesehatan</title>
+    <link rel="stylesheet" href="style.css?v=316">
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 </head>
 <body>
 
 <div class="container">
-    <header>
+    <nav class="navbar">
+        <a href="index.html" class="nav-item active">📈 Dashboard Utama</a>
+        <a href="pasien.html" class="nav-item">👤 Manajemen Pasien</a>
+    </nav>
+
+    <header style="margin-top: 20px;">
         <h1>MONITORING KESEHATAN REAL-TIME</h1>
     </header>
 
@@ -55,13 +60,9 @@
             <h3>👤 Profil Pasien Aktif</h3>
             <div class="profile-grid">
                 <p><strong>Nama:</strong> <span id="p-name">Menyiapkan...</span></p>
-                <p><strong>ID/RM:</strong> <span>RM-2026-0028</span></p>
-                <p><strong>Usia:</strong> <span>48 Tahun</span></p>
-                <p><strong>Gender:</strong> <span>Laki-laki</span></p>
-            </div>
-            <div class="input-pasien-container" style="margin-top: 12px; display: flex; gap: 8px;">
-                <input type="text" id="input-nama-pasien" placeholder="Ketik nama pasien baru..." style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid #141b66; background: #050b2e; color: white; font-size: 13px;">
-                <button onclick="updateNamaPasien()" style="padding: 8px 12px; background: #2980b9; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px;">Set Nama</button>
+                <p><strong>ID/RM:</strong> <span id="p-rm">Menyiapkan...</span></p>
+                <p><strong>Usia:</strong> <span id="p-age">Menyiapkan...</span></p>
+                <p><strong>Gender:</strong> <span id="p-gender">Menyiapkan...</span></p>
             </div>
         </div>
 
@@ -101,7 +102,6 @@
             <h3>📋 Log Riwayat Pemeriksaan Medis (Permanen)</h3>
             <div class="log-buttons">
                 <button class="btn-log btn-csv" onclick="downloadCSV()">📥 Download Excel (CSV)</button>
-                <button class="btn-log btn-clear" onclick="hapusSemuaRiwayat()">🗑️ Kosongkan Log</button>
             </div>
         </div>
         <div class="table-responsive">
@@ -109,9 +109,11 @@
                 <thead>
                     <tr>
                         <th>Waktu Pemeriksaan</th>
+                        <th>ID / RM</th>
                         <th>Nama Pasien</th>
-                        <th>Suhu Tubuh</th>
-                        <th>Saturasi SpO₂</th>
+                        <th>Gender & Usia</th>
+                        <th>Suhu</th>
+                        <th>SpO₂</th>
                         <th>Heart Rate</th>
                         <th>Tekanan Darah</th>
                     </tr>
@@ -123,6 +125,6 @@
     </section>
 </div>
 
-<script src="index.js?v=313"></script>
+<script src="index.js?v=316"></script>
 </body>
 </html>
