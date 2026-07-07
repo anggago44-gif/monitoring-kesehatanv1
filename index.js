@@ -162,7 +162,7 @@ function drawGauge(id, value, color, max, unit) {
   });
 }
 
-// MQTT CLIENT HANDLER
+// ================= MQTT CLIENT HANDLER =================
 client.on("connect", () => {
   console.log("MQTT CONNECTED SUCCESFULLY ✅");
   client.subscribe(topicReadings);
@@ -173,20 +173,29 @@ client.on("message", (topic, msg) => {
 
   try {
     let data = JSON.parse(msg.toString());
-    let suhu = Number(data.temperature || 0);
-    let spo2 = Number(data.spo2 || 0);
-    let hr = Number(data.heartRate || 0);
+    
+    // Sinkronisasi Parsing Data dari Perangkat Keras (ESP32)
+    let suhu = data.temperature !== undefined ? Number(data.temperature) : (data.temp !== undefined ? Number(data.temp) : currentData.temp);
+    let saturasiOksi = data.spo2 !== undefined ? Number(data.spo2) : currentData.spo2;
+    
+    let hr = 0;
+    if (data.heartRate !== undefined) hr = Number(data.heartRate);
+    else if (data.heartrate !== undefined) hr = Number(data.heartrate);
+    else hr = currentData.hr;
+
     let mmHgLive = Number(data.mmHgLive || 0); 
     let systolic = Number(data.systolic || 0);  
     let diastolic = Number(data.diastolic || 0); 
 
-    currentData.temp = suhu;
-    currentData.spo2 = spo2;
-    currentData.hr = hr;
+    // Update data global hanya jika nilai yang diterima valid
+    if (suhu !== -127 && suhu > 0) currentData.temp = suhu;
+    if (saturasiOksi > 0) currentData.spo2 = saturasiOksi;
+    if (hr > 0) currentData.hr = hr;
     
-    if(systolic > 0) { 
+    if (systolic > 0) { 
       currentData.sys = systolic; 
       currentData.dia = diastolic; 
+      
       if (currentStep === 3) { 
         currentStep = 4; 
         updateWorkflowUI(); 
@@ -194,30 +203,31 @@ client.on("message", (topic, msg) => {
       }
     }
 
-    if(document.getElementById("temp")) {
-      document.getElementById("temp").innerHTML = suhu.toFixed(1) + "°C";
-      document.getElementById("spo2").innerHTML = spo2 + "%";
-      document.getElementById("hr").innerHTML = hr + " bpm";
+    if (document.getElementById("temp")) {
+      document.getElementById("temp").innerHTML = currentData.temp.toFixed(1) + "°C";
+      document.getElementById("spo2").innerHTML = currentData.spo2 + "%";
+      document.getElementById("hr").innerHTML = currentData.hr + " bpm";
       document.getElementById("bp").innerHTML = currentData.sys + "/" + currentData.dia + " mmHg";
 
-      Plotly.extendTraces("chartTemp", { x: [[x]], y: [[suhu]] }, [0]);
-      Plotly.extendTraces("chartSpo2", { x: [[x]], y: [[spo2]] }, [0]);
-      Plotly.extendTraces("chartHR", { x: [[x]], y: [[hr]] }, [0]);
+      // Dorong data valid ke grafik tren Plotly
+      Plotly.extendTraces("chartTemp", { x: [[x]], y: [[currentData.temp]] }, [0]);
+      Plotly.extendTraces("chartSpo2", { x: [[x]], y: [[currentData.spo2]] }, [0]);
+      Plotly.extendTraces("chartHR", { x: [[x]], y: [[currentData.hr]] }, [0]);
       Plotly.extendTraces("chartTensi", { x: [[x]], y: [[mmHgLive]] }, [0]); 
 
       ["chartTemp", "chartSpo2", "chartHR", "chartTensi"].forEach(id => {
         Plotly.relayout(id, { "xaxis.range": [Math.max(0, x - 20), x] });
       });
 
-      let hrColor = (hr > 100 || hr < 60) ? "red" : "lime";
-      drawGauge("gauge1", suhu, "cyan", 50, "°C");
-      drawGauge("gauge2", spo2, "lime", 100, "%");
-      drawGauge("gauge3", hr, hrColor, 150, "bpm");
+      let hrColor = (currentData.hr > 100 || currentData.hr < 60) ? "red" : "lime";
+      drawGauge("gauge1", currentData.temp, "cyan", 50, "°C");
+      drawGauge("gauge2", currentData.spo2, "lime", 100, "%");
+      drawGauge("gauge3", currentData.hr, hrColor, 150, "bpm");
       drawGauge("gauge4", mmHgLive, "orange", 200, "mmHg"); 
 
       let statusText = "NORMAL";
       let statusColor = "lime";
-      if (hr > 100 || hr < 50 || spo2 < 94 || suhu > 37.5 || currentData.sys > 135) {
+      if (currentData.hr > 100 || currentData.hr < 50 || currentData.spo2 < 94 || currentData.temp > 37.5 || currentData.sys > 135) {
         statusText = "WASPADA / ABNORMAL";
         statusColor = "red";
       }
@@ -295,11 +305,52 @@ function nextStep() {
     updateWorkflowUI();
 }
 
+// ================= LOGIKA RESET TOTAL DASHBOARD & WORKFLOW =================
 function resetWorkflow() {
+    // 1. Kembalikan variabel data koordinat & nilai internal ke awal
     currentStep = 0;
-    updateWorkflowUI();
+    x = 0;
+    currentData = { temp: 0, spo2: 0, hr: 0, sys: 0, dia: 0 };
+    
+    // 2. Kirim sinyal interupsi total ke modul hardware ESP32
     client.publish(topicControl, "STOP");
-    document.getElementById("medical-advice").innerHTML = 'Sistem direset. Silakan klik <strong>"MULAI PERIKSA LENGKAP"</strong> untuk memulai alur kembali.';
+    
+    // 3. Kembalikan UI langkah alur kerja
+    updateWorkflowUI();
+    
+    // 4. Setel ulang visual teks angka medis di HTML kembali ke nol
+    if (document.getElementById("temp")) {
+      document.getElementById("temp").innerHTML = "0.0°C";
+      document.getElementById("spo2").innerHTML = "0%";
+      document.getElementById("hr").innerHTML = "0 bpm";
+      document.getElementById("bp").innerHTML = "0/0 mmHg";
+      
+      document.getElementById("status").innerHTML = "NORMAL";
+      document.getElementById("status").style.color = "lime";
+    }
+    
+    if (document.getElementById("medical-advice")) {
+      document.getElementById("medical-advice").innerHTML = 'Sistem direset. Silakan klik <strong>"MULAI PERIKSA LENGKAP"</strong> untuk memulai alur kembali.';
+    }
+
+    // 5. Bersihkan data titik koordinat (X & Y) pada grafik real-time Plotly
+    const chartIds = ["chartTemp", "chartSpo2", "chartHR", "chartTensi"];
+    chartIds.forEach(id => {
+      if (document.getElementById(id)) {
+        Plotly.update(id, { x: [[]], y: [[]] }, {}, [0]);
+        Plotly.relayout(id, { "xaxis.range": [0, 20] });
+      }
+    });
+
+    // 6. Kembalikan jarum penunjuk indikator lingkaran (Gauge) ke angka nol
+    if (document.getElementById("gauge1")) {
+      drawGauge("gauge1", 0, "cyan", 50, "°C");
+      drawGauge("gauge2", 0, "lime", 100, "%");
+      drawGauge("gauge3", 0, "lime", 150, "bpm");
+      drawGauge("gauge4", 0, "orange", 200, "mmHg");
+    }
+    
+    console.log("DASHBOARD DAN WORKFLOW BERHASIL DIRESET TOTAL 🔄");
 }
 
 function resizeCharts() {
