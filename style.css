@@ -85,7 +85,7 @@ h1{
 }
 
 /* Plotly Responsive Handling */
-#chartTemp, #chartSpo2, #chartHR, #chartTensi, #ecg, 
+#chartTemp, #chartSpo2, #chartHR, #chartTensi, 
 #gauge1, #gauge2, #gauge3, #gauge4 {
    width:100%!important;
 }
@@ -93,7 +93,7 @@ h1{
 /* Tinggi Elemen Di Layar Mobile/Handphone */
 #chartTemp, #chartSpo2, #chartHR { height:260px; }
 #gauge1, #gauge2, #gauge3, #gauge4 { height:200px; }
-#chartTensi, #ecg { height:220px; }
+#chartTensi { height:220px; }
 
 /* =====================
    PROFIL & REKOMENDASI PANEL
@@ -267,7 +267,7 @@ h1{
   /* Ukuran Grafik Ditinggikan Di Desktop Sesuai Layout Vertikal Asli */
   #chartTemp, #chartSpo2, #chartHR { height: 360px; }
   #gauge1, #gauge2, #gauge3, #gauge4 { height: 260px; }
-  #chartTensi, #ecg { height: 260px; }
+  #chartTensi { height: 260px; }
 }
 
 @media(min-width:1600px){
