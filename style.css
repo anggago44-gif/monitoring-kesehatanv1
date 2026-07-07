@@ -1,276 +1,78 @@
 /* =====================
-   RESET & GLOBAL STYLING
+   PANEL TABEL LOG RIWAYAT
 ===================== */
-*{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
-}
-
-html,body{
-  width:100%;
-  overflow-x:hidden;
-}
-
-body{
-  background:#050b2e;
-  color:white;
-  font-family:Arial,sans-serif;
-}
-
-.container{
-  width:100%;
-  padding:12px;
-}
-
-h1{
-  text-align:center;
-  font-size:24px;
-  margin-bottom:15px;
-  letter-spacing:1px;
-}
-
-/* =====================
-   CARD SENSOR ATAS
-===================== */
-.cards{
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-}
-
-.card{
-  width:100%;
-  background:#0b0f4a;
-  border-radius:16px;
-  padding:16px;
-  text-align:center;
-  box-shadow: 0 0 15px rgba(0,255,255,.08);
-}
-
-.card h2{
-  margin-top:8px;
-  font-size:22px;
-}
-
-/* =====================
-   GRID UTAMA (RESPONSIVE STRUCTURE)
-===================== */
-.grid{
-  display:flex;
-  flex-direction:column;
-  gap:15px;
-  margin-top:15px;
-}
-
-.charts{
-  display:flex;
-  flex-direction:column;
-  gap:15px;
-}
-
-.gauges{
-  display:flex;
-  flex-direction:column;
-  gap:15px;
-}
-
-.chart-box{
-  width:100%;
-  background:black;
-  border-radius:16px;
-  padding:12px;
-  overflow:hidden;
-  box-shadow: 0 0 10px rgba(0,255,255,.08);
-}
-
-/* Plotly Responsive Handling */
-#chartTemp, #chartSpo2, #chartHR, #chartTensi, 
-#gauge1, #gauge2, #gauge3, #gauge4 {
-   width:100%!important;
-}
-
-/* Tinggi Elemen Di Layar Mobile/Handphone */
-#chartTemp, #chartSpo2, #chartHR { height:260px; }
-#gauge1, #gauge2, #gauge3, #gauge4 { height:200px; }
-#chartTensi { height:220px; }
-
-/* =====================
-   PROFIL & REKOMENDASI PANEL
-===================== */
-.info-layout {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  margin-top: 20px;
-}
-
-.info-panel {
-  background: #0b0f4a;
-  border-radius: 16px;
-  padding: 18px;
-  box-shadow: 0 0 15px rgba(0,255,255,.05);
-}
-
-.info-panel h3 {
-  font-size: 16px;
-  margin-bottom: 12px;
-  font-weight: bold;
-}
-
-.profile-box h3 { color: #00ffff; }
-.advice-box h3 { color: #f39c12; }
-
-.profile-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 8px;
-  font-size: 14px;
-}
-
-.profile-grid p {
-  border-bottom: 1px solid #141b66;
-  padding-bottom: 4px;
-}
-
-.advice-content {
-  font-size: 14px;
-  line-height: 1.5;
-  background: #050b2e;
-  padding: 12px;
-  border-radius: 8px;
-  border-left: 4px solid #f39c12;
-  color: #ddd;
-}
-
-/* =====================
-   WORKFLOW STEP INDICATOR
-===================== */
-.workflow-box {
+.log-container {
   background: #0b0f4a;
   border-radius: 16px;
   padding: 20px;
-  margin-top: 20px;
+  margin-top: 25px;
   box-shadow: 0 0 15px rgba(0,255,255,.05);
 }
 
-.workflow-box h3 {
-  font-size: 16px;
-  margin-bottom: 15px;
-  color: #2ecc71;
-  text-align: center;
-}
-
-.steps-indicator {
+.log-header {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-bottom: 20px;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 15px;
+  border-bottom: 2px solid #141b66;
+  padding-bottom: 12px;
 }
 
-.step {
-  padding: 12px;
-  background: #050b2e;
-  border-radius: 8px;
-  text-align: center;
-  border-left: 5px solid #333;
-  color: #666;
-  transition: 0.3s;
+.log-header h3 {
+  font-size: 16px;
+  color: #00ffff;
 }
 
-.step.active {
-  border-left-color: #2ecc71;
-  background: #112255;
-  color: white;
-  font-weight: bold;
-}
-
-.step.done {
-  border-left-color: #00ffff;
-  color: #aaa;
-  background: #070e38;
-}
-
-.workflow-controls {
+.log-buttons {
   display: flex;
-  flex-wrap: wrap;
   gap: 10px;
 }
 
-.btn {
-  flex: 1;
-  min-width: 140px;
-  padding: 12px;
-  font-weight: bold;
+.btn-log {
+  padding: 8px 14px;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
+  font-weight: bold;
   cursor: pointer;
+  font-size: 13px;
   color: white;
 }
 
-.btn-primary { background: #27ae60; }
-.btn-secondary { background: #2980b9; }
-.btn-stop { background: #c0392b; }
-.btn:disabled { background: #1a1f4d !important; color: #555 !important; cursor: not-allowed; }
+.btn-csv { background: #27ae60; } /* Hijau Excel */
+.btn-clear { background: #7f8c8d; }
 
-/* =====================
-   STATUS FOOTER INDIKATOR
-===================== */
-.status-footer {
-  margin-top: 20px;
-  background: #0b0f4a;
-  padding: 15px;
-  border-radius: 16px;
-  text-align: center;
-  font-size: 22px;
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.log-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  text-align: left;
+}
+
+.log-table th, .log-table td {
+  padding: 12px;
+  border-bottom: 1px solid #141b66;
+}
+
+.log-table th {
+  background: #050b2e;
+  color: #f39c12;
   font-weight: bold;
-  box-shadow: 0 0 15px rgba(0,255,255,.05);
 }
 
-/* =====================
-   MEDIA QUERY: TABLET (768px)
-===================== */
-@media(min-width:768px){
-  .container { padding:18px; }
-  .cards { display:grid; grid-template-columns: repeat(2,1fr); gap:15px; }
-  .gauges { display:grid; grid-template-columns: repeat(2,1fr); gap:15px; }
-  .info-layout { flex-direction: row; }
-  .info-panel { flex: 1; }
-  .profile-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
-  .steps-indicator { flex-direction: row; }
-  .step { flex: 1; }
-  h1 { font-size:28px; }
+.log-table tbody tr:hover {
+  background: rgba(0, 255, 255, 0.03);
 }
 
-/* =====================
-   MEDIA QUERY: DESKTOP TAMPILAN GAGAH (1200px)
-===================== */
-@media(min-width:1200px){
-  .container{
-     max-width:1600px;
-     margin:auto;
-     padding:20px;
+/* Penyesuaian layout header tabel untuk layar besar */
+@media(min-width: 768px) {
+  .log-header {
+    flex-direction: row;
   }
-  h1 { font-size:34px; }
-  .cards { grid-template-columns: repeat(4,1fr); }
-  
-  /* GRID RASIO: KIRI GRAFIK BESAR DIBUAT 2.5 KALI LEBIH LEBAR DARI GAUGE KANAN */
-  .grid {
-     display:grid;
-     grid-template-columns: 2.5fr 1fr;
-     gap:20px;
-  }
-  
-  .charts { display:flex; flex-direction:column; gap:15px; }
-  .gauges { display:flex; flex-direction:column; gap:15px; }
-  
-  /* Ukuran Grafik Ditinggikan Di Desktop Sesuai Layout Vertikal Asli */
-  #chartTemp, #chartSpo2, #chartHR { height: 360px; }
-  #gauge1, #gauge2, #gauge3, #gauge4 { height: 260px; }
-  #chartTensi { height: 260px; }
-}
-
-@media(min-width:1600px){
-  .container { max-width:1800px; }
-  #chartTemp, #chartSpo2, #chartHR { height: 400px; }
 }
