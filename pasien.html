@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manajemen Pasien - Monitoring Kesehatan</title>
-    <link rel="stylesheet" href="style.css?v=316">
+    <link rel="stylesheet" href="style.css?v=317">
 </head>
 <body>
 
@@ -24,27 +24,43 @@
             
             <div class="form-page-layout" style="display: flex; flex-direction: column; gap: 12px;">
                 <div style="display: flex; flex-direction: column; gap: 4px;">
-                    <label style="font-size: 13px; color: #aaa;">Nama Lengkap Pasien:</label>
-                    <input type="text" id="input-nama-pasien" placeholder="Masukkan nama..." style="padding: 12px; border-radius: 8px; border: 1px solid #141b66; background: #050b2e; color: white;">
-                </div>
-                
-                <div style="display: flex; flex-direction: column; gap: 4px;">
-                    <label style="font-size: 13px; color: #aaa;">Nomor Rekam Medis (ID/RM):</label>
-                    <input type="text" id="input-rm-pasien" placeholder="Contoh: RM-2026-0028..." style="padding: 12px; border-radius: 8px; border: 1px solid #141b66; background: #050b2e; color: white;">
+                    <label style="font-size: 13px; color: #00ffff; font-weight: bold;">Nomor Rekam Medis (Otomatis):</label>
+                    <input type="text" id="input-rm-pasien" readonly style="padding: 12px; border-radius: 8px; border: 1px solid #00ffff; background: #112255; color: #00ffff; font-weight: bold;">
                 </div>
 
                 <div style="display: flex; flex-direction: column; gap: 4px;">
-                    <label style="font-size: 13px; color: #aaa;">Usia Pasien:</label>
-                    <input type="text" id="input-usia-pasien" placeholder="Contoh: 23 Tahun..." style="padding: 12px; border-radius: 8px; border: 1px solid #141b66; background: #050b2e; color: white;">
+                    <label style="font-size: 13px; color: #aaa;">Nama Lengkap Pasien:</label>
+                    <input type="text" id="input-nama-pasien" placeholder="Masukkan nama lengkap...">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <label style="font-size: 13px; color: #aaa;">Tempat Lahir:</label>
+                        <input type="text" id="input-tempat-pasien" placeholder="Kota lahir...">
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <label style="font-size: 13px; color: #aaa;">Tanggal Lahir:</label>
+                        <input type="date" id="input-ttl-pasien" onchange="hitungUmurOtomatis()">
+                    </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label style="font-size: 13px; color: #f39c12; font-weight: bold;">Umur (Otomatis dari Tanggal Lahir):</label>
+                    <input type="text" id="input-usia-pasien" readonly placeholder="Akan terhitung otomatis..." style="padding: 12px; border-radius: 8px; border: 1px solid #141b66; background: #050b2e; color: #f39c12; font-weight: bold;">
                 </div>
 
                 <div style="display: flex; flex-direction: column; gap: 4px;">
                     <label style="font-size: 13px; color: #aaa;">Jenis Kelamin (Gender):</label>
-                    <select id="input-gender-pasien" style="padding: 12px; border-radius: 8px; border: 1px solid #141b66; background: #050b2e; color: white; cursor: pointer;">
+                    <select id="input-gender-pasien">
                         <option value="">-- Pilih Jenis Kelamin --</option>
                         <option value="Laki-laki">Laki-laki</option>
                         <option value="Perempuan">Perempuan</option>
                     </select>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label style="font-size: 13px; color: #aaa;">Alamat Tinggal:</label>
+                    <input type="text" id="input-alamat-pasien" placeholder="Masukkan alamat lengkap...">
                 </div>
 
                 <button onclick="updateProfilPasien()" style="margin-top: 10px; padding: 14px; background: #27ae60; border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; font-size: 14px; letter-spacing: 0.5px;">💾 SIMPAN & AKTIFKAN PROFIL PASIEN</button>
@@ -54,62 +70,142 @@
         <div class="info-panel profile-box">
             <h3>🟢 Pasien Aktif Saat Ini</h3>
             <div class="profile-grid" style="margin-bottom: 20px;">
-                <p><strong>Nama:</strong> <span id="p-name">Menyiapkan...</span></p>
                 <p><strong>ID/RM:</strong> <span id="p-rm">Menyiapkan...</span></p>
+                <p><strong>Nama:</strong> <span id="p-name">Menyiapkan...</span></p>
+                <p><strong>TTL:</strong> <span id="p-ttl">Menyiapkan...</span></p>
                 <p><strong>Usia:</strong> <span id="p-age">Menyiapkan...</span></p>
                 <p><strong>Gender:</strong> <span id="p-gender">Menyiapkan...</span></p>
+                <p><strong>Alamat:</strong> <span id="p-alamat">Menyiapkan...</span></p>
             </div>
-            <p style="font-size: 12px; color: #888; line-height: 1.4; background: #050b2e; padding: 10px; border-radius: 6px;">
-                *Profil di atas adalah pasien yang akan direkam datanya jika Anda menjalankan pengujian alat di halaman Dashboard Utama.
-            </p>
             
-            <button class="btn-log btn-clear" onclick="hapusSemuaRiwayat()" style="width: 100%; margin-top: 15px; padding: 10px; background: #7f8c8d; border-radius: 6px; font-size: 12px;">🗑️ Kosongkan Seluruh Log Riwayat Medis</button>
+            <button class="btn-log btn-clear" onclick="hapusSemuaRiwayat()" style="width: 100%; padding: 10px; background: #7f8c8d; border-radius: 6px; font-size: 12px; color:white; border:none; cursor:pointer; font-weight:bold;">🗑️ Kosongkan Seluruh Log Riwayat Medis</button>
         </div>
     </section>
 </div>
 
-<script style="display:none;">
-    // Script internal khusus halaman pasien untuk sinkronisasi LocalStorage
+<style>
+    .form-page-layout input, .form-page-layout select {
+        padding: 12px;
+        border-radius: 8px;
+        border: 1px solid #141b66;
+        background: #050b2e;
+        color: white;
+        font-size: 14px;
+    }
+    .form-page-layout input:focus, .form-page-layout select:focus {
+        outline: none;
+        border-color: #00ffff;
+    }
+</style>
+
+<script>
+    // GENERATE NOMOR RM OTOMATIS BERURUTAN (Format: RM-2026-001)
+    function generateRMOtomatis() {
+        let riwayatLama = localStorage.getItem("riwayatMedisPasien");
+        let arrayRiwayat = riwayatLama ? JSON.parse(riwayatLama) : [];
+        
+        let urutanLanjut = 1;
+        
+        if (arrayRiwayat.length > 0) {
+            // Ambil data nomor RM terakhir yang tersimpan di log logis
+            let rmTerakhir = arrayRiwayat[0].rm; // Contoh: "RM-2026-003"
+            let nomorStr = rmTerakhir.split("-")[2]; // Mengambil "003"
+            if(!isNaN(nomorStr)) {
+                urutanLanjut = parseInt(nomorStr) + 1;
+            }
+        }
+        
+        // Pad nomor urut agar memiliki 3 digit (contoh: 1 -> 001, 12 -> 012)
+        let padNomor = String(urutanLanjut).padStart(3, '0');
+        document.getElementById("input-rm-pasien").value = "RM-2026-" + padNomor;
+    }
+
+    // HITUNG UMUR OTOMATIS BERDASARKAN TANGGAL LAHIR
+    function hitungUmurOtomatis() {
+        let tglInput = document.getElementById("input-ttl-pasien").value;
+        if (!tglInput) return;
+
+        let lahir = new Date(tglInput);
+        let sekarang = new Date(); // Berjalan di tahun 2026 sesuai device sistem
+        
+        let umur = sekarang.getFullYear() - lahir.getFullYear();
+        let bulanDiff = sekarang.getMonth() - lahir.getMonth();
+        
+        if (bulanDiff < 0 || (bulanDiff === 0 && sekarang.getDate() < lahir.getDate())) {
+            umur--;
+        }
+        
+        document.getElementById("input-usia-pasien").value = umur >= 0 ? umur + " Tahun" : "0 Tahun";
+    }
+
     function muatProfil() {
         let tersimpan = localStorage.getItem("profilPasienAktif");
         if (tersimpan) {
             let p = JSON.parse(tersimpan);
-            document.getElementById("p-name").innerText = p.nama;
             document.getElementById("p-rm").innerText = p.rm;
+            document.getElementById("p-name").innerText = p.nama;
+            document.getElementById("p-ttl").innerText = (p.tempat || "-") + ", " + (p.tanggalStr || "-");
             document.getElementById("p-age").innerText = p.usia;
             document.getElementById("p-gender").innerText = p.gender;
+            document.getElementById("p-alamat").innerText = p.alamat || "-";
         } else {
-            document.getElementById("p-name").innerText = "Tn. Ahmad Subarjo";
-            document.getElementById("p-rm").innerText = "RM-2026-0028";
-            document.getElementById("p-age").innerText = "48 Tahun";
-            document.getElementById("p-gender").innerText = "Laki-laki";
+            // Default awal cetak template bawan jika masih kosong murni
+            document.getElementById("p-rm").innerText = "RM-2026-001";
+            document.getElementById("p-name").innerText = "Belum Ada Pasien";
+            document.getElementById("p-ttl").innerText = "-";
+            document.getElementById("p-age").innerText = "-";
+            document.getElementById("p-gender").innerText = "-";
+            document.getElementById("p-alamat").innerText = "-";
         }
+        generateRMOtomatis();
     }
 
     function updateProfilPasien() {
+        let vRm = document.getElementById("input-rm-pasien").value;
         let vNama = document.getElementById("input-nama-pasien").value.trim();
-        let vRm = document.getElementById("input-rm-pasien").value.trim();
-        let vUsia = document.getElementById("input-usia-pasien").value.trim();
+        let vTempat = document.getElementById("input-tempat-pasien").value.trim();
+        let vTanggal = document.getElementById("input-ttl-pasien").value;
+        let vUsia = document.getElementById("input-usia-pasien").value;
         let vGender = document.getElementById("input-gender-pasien").value;
+        let vAlamat = document.getElementById("input-alamat-pasien").value.trim();
 
-        if(!vNama || !vRm) { alert("Nama Pasien dan No. RM wajib diisi!"); return; }
+        if(!vNama) { alert("Nama Pasien wajib diisi!"); return; }
+        if(!vTanggal) { alert("Tanggal Lahir wajib dipilih untuk kalkulasi umur!"); return; }
 
-        let profilBaru = { nama: vNama, rm: vRm, usia: vUsia || "-", gender: vGender || "-" };
+        // Konversi format tanggal agar enak dibaca (YYYY-MM-DD -> DD/MM/YYYY)
+        let tglObj = new Date(vTanggal);
+        let tanggalStr = String(tglObj.getDate()).padStart(2, '0') + "/" + String(tglObj.getMonth() + 1).padStart(2, '0') + "/" + tglObj.getFullYear();
+
+        let profilBaru = { 
+            rm: vRm, 
+            nama: vNama, 
+            tempat: vTempat || "-",
+            tanggalStr: tanggalStr,
+            usia: vUsia, 
+            gender: vGender || "-",
+            alamat: vAlamat || "-"
+        };
+
         localStorage.setItem("profilPasienAktif", JSON.stringify(profilBaru));
         
-        alert("Profil pasien berhasil diperbarui! Silakan kembali ke Dashboard untuk mulai menguji.");
+        alert("Pasien Berhasil Didaftarkan!\nNomor " + vRm + " Telah Aktif.");
         muatProfil();
 
+        // Kosongkan form input kembali bersih
         document.getElementById("input-nama-pasien").value = "";
-        document.getElementById("input-rm-pasien").value = "";
+        document.getElementById("input-tempat-pasien").value = "";
+        document.getElementById("input-ttl-pasien").value = "";
         document.getElementById("input-usia-pasien").value = "";
         document.getElementById("input-gender-pasien").value = "";
+        document.getElementById("input-alamat-pasien").value = "";
+        generateRMOtomatis(); // Naikkan nomor antrean otomatis berikutnya
     }
 
     function hapusSemuaRiwayat() {
-        if(confirm("Apakah Anda yakin ingin menghapus TOTAL semua riwayat log pasien?")) {
+        if(confirm("Apakah Anda yakin ingin menghapus TOTAL semua riwayat log pasien? Nomor urut RM juga akan ter-reset kembali ke 001.")) {
             localStorage.removeItem("riwayatMedisPasien");
             alert("Seluruh log riwayat telah dikosongkan.");
+            muatProfil();
         }
     }
 
