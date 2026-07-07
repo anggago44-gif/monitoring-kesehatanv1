@@ -10,30 +10,34 @@ let currentStep = 0;
 
 // ================= LOGIKA MEMUAT PROFIL AKTIF (LOCALSTORAGE) =================
 function muatProfilPasienLama() {
-  // Mengambil data yang di-input dari halaman pasien.html
   let profilTersimpan = localStorage.getItem("profilPasienAktif");
   
   if (profilTersimpan) {
     let profil = JSON.parse(profilTersimpan);
-    document.getElementById("p-name").innerText = profil.nama;
     document.getElementById("p-rm").innerText = profil.rm;
+    document.getElementById("p-name").innerText = profil.nama;
+    document.getElementById("p-ttl").innerText = (profil.tempat || "-") + ", " + (profil.tanggalStr || "-");
     document.getElementById("p-age").innerText = profil.usia;
     document.getElementById("p-gender").innerText = profil.gender;
+    document.getElementById("p-alamat").innerText = profil.alamat || "-";
   } else {
-    // Default awal jika memori browser masih kosong
-    document.getElementById("p-name").innerText = "Tn. Ahmad Subarjo";
-    document.getElementById("p-rm").innerText = "RM-2026-0028";
-    document.getElementById("p-age").innerText = "48 Tahun";
-    document.getElementById("p-gender").innerText = "Laki-laki";
+    document.getElementById("p-rm").innerText = "RM-2026-001";
+    document.getElementById("p-name").innerText = "Belum Ada Pasien";
+    document.getElementById("p-ttl").innerText = "-";
+    document.getElementById("p-age").innerText = "-";
+    document.getElementById("p-gender").innerText = "-";
+    document.getElementById("p-alamat").innerText = "-";
   }
 }
 
 // ================= LOGIKA TABEL RIWAYAT LOG PASIEN & EXCEL =================
 function simpanKeRiwayatLog() {
-  let namaPasien = document.getElementById("p-name").innerText;
   let rmPasien = document.getElementById("p-rm").innerText;
+  let namaPasien = document.getElementById("p-name").innerText;
+  let ttlPasien = document.getElementById("p-ttl").innerText;
   let usiaPasien = document.getElementById("p-age").innerText;
   let genderPasien = document.getElementById("p-gender").innerText;
+  let alamatPasien = document.getElementById("p-alamat").innerText;
   
   let sekarang = new Date();
   let waktuStr = sekarang.toLocaleDateString('id-ID') + " " + sekarang.toLocaleTimeString('id-ID');
@@ -42,8 +46,10 @@ function simpanKeRiwayatLog() {
     waktu: waktuStr,
     rm: rmPasien,
     nama: namaPasien,
+    ttl: ttlPasien,
     gender: genderPasien,
     usia: usiaPasien,
+    alamat: alamatPasien,
     suhu: currentData.temp.toFixed(1) + " °C",
     spo2: currentData.spo2 + " %",
     hr: currentData.hr + " bpm",
@@ -52,7 +58,7 @@ function simpanKeRiwayatLog() {
 
   let riwayatLama = localStorage.getItem("riwayatMedisPasien");
   let arrayRiwayat = riwayatLama ? JSON.parse(riwayatLama) : [];
-  arrayRiwayat.unshift(dataBaru); // Data terbaru muncul paling atas
+  arrayRiwayat.unshift(dataBaru);
 
   localStorage.setItem("riwayatMedisPasien", JSON.stringify(arrayRiwayat));
   tampilkanTabelRiwayat();
@@ -63,7 +69,7 @@ function tampilkanTabelRiwayat() {
   let arrayRiwayat = riwayatLama ? JSON.parse(riwayatLama) : [];
   let tbody = document.getElementById("log-table-body");
   
-  if (!tbody) return; // Mencegah error jika dijalankan di halaman selain dashboard
+  if (!tbody) return; 
   tbody.innerHTML = ""; 
 
   if(arrayRiwayat.length === 0) {
@@ -75,13 +81,13 @@ function tampilkanTabelRiwayat() {
     let tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${row.waktu}</td>
-      <td style="color:#f39c12;">${row.rm}</td>
-      <td style="color:#00ffff; font-weight:bold;">${row.nama}</td>
+      <td style="color:#00ffff; font-weight:bold;">${row.rm}</td>
+      <td style="color:#f39c12; font-weight:bold;">${row.nama}</td>
       <td>${row.gender} (${row.usia})</td>
       <td>${row.suhu}</td>
       <td>${row.spo2}</td>
       <td>${row.hr}</td>
-      <td>${row.tensi}</td>
+      <td style="color:orange; font-weight:bold;">${row.tensi}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -96,10 +102,10 @@ function downloadCSV() {
     return;
   }
 
-  let csvContent = "Waktu Pemeriksaan,No RM,Nama Pasien,Gender,Usia,Suhu Tubuh,Saturasi SpO2,Heart Rate (BPM),Tekanan Darah (mmHg)\n";
+  let csvContent = "Waktu Pemeriksaan,No RM,Nama Pasien,TTL,Gender,Usia,Alamat,Suhu Tubuh,Saturasi SpO2,Heart Rate (BPM),Tekanan Darah (mmHg)\n";
 
   arrayRiwayat.forEach(row => {
-    csvContent += `"${row.waktu}","${row.rm}","${row.nama}","${row.gender}","${row.usia}","${row.suhu}","${row.spo2}","${row.hr}","${row.tensi}"\n`;
+    csvContent += `"${row.waktu}","${row.rm}","${row.nama}","${row.ttl}","${row.gender}","${row.usia}","${row.alamat}","${row.suhu}","${row.spo2}","${row.hr}","${row.tensi}"\n`;
   });
 
   let blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -122,7 +128,6 @@ const darkLayout = {
   margin: { l: 55, r: 25, t: 50, b: 40 }
 };
 
-// Cek keberadaan elemen chart sebelum render Plotly (mencegah error di pasien.html)
 if (document.getElementById("chartTemp")) {
   Plotly.newPlot("chartTemp", [{ x: [], y: [], mode: "lines", line: { color: "cyan", width: 3.5 } }], { ...darkLayout, title: "Tren Suhu Tubuh (°C)" });
   Plotly.newPlot("chartSpo2", [{ x: [], y: [], mode: "lines", line: { color: "lime", width: 3.5 } }], { ...darkLayout, title: "Tren SpO₂ (%)" });
@@ -179,18 +184,16 @@ client.on("message", (topic, msg) => {
     currentData.spo2 = spo2;
     currentData.hr = hr;
     
-    // Logika ketika data tensi meter final (systolic) masuk
     if(systolic > 0) { 
       currentData.sys = systolic; 
       currentData.dia = diastolic; 
       if (currentStep === 3) { 
         currentStep = 4; 
         updateWorkflowUI(); 
-        simpanKeRiwayatLog(); // Simpan otomatis saat alur selesai
+        simpanKeRiwayatLog(); 
       }
     }
 
-    // Update elemen teks di dashboard jika elemennya ada
     if(document.getElementById("temp")) {
       document.getElementById("temp").innerHTML = suhu.toFixed(1) + "°C";
       document.getElementById("spo2").innerHTML = spo2 + "%";
@@ -228,7 +231,6 @@ client.on("message", (topic, msg) => {
   catch (e) { console.log("JSON TRANSLATION ERROR:", e); }
 });
 
-// LOGIKA SISTEM REKOMENDASI MEDIS OTOMATIS
 function generateMedicalAdvice() {
   let adviceBox = document.getElementById("medical-advice");
   if (!adviceBox) return;
@@ -265,7 +267,6 @@ function generateMedicalAdvice() {
   adviceBox.innerHTML = adviceText;
 }
 
-// CONTROL ALUR WORKFLOW MANAGEMENT
 function updateWorkflowUI() {
     if (!document.getElementById("step1")) return;
     for(let i=1; i<=3; i++) {
@@ -301,7 +302,6 @@ function resetWorkflow() {
     document.getElementById("medical-advice").innerHTML = 'Sistem direset. Silakan klik <strong>"MULAI PERIKSA LENGKAP"</strong> untuk memulai alur kembali.';
 }
 
-// AUTO RESPONSIVE LAYOUT TRIGGER
 function resizeCharts() {
   ["chartTemp", "chartSpo2", "chartHR", "chartTensi", "gauge1", "gauge2", "gauge3", "gauge4"].forEach(id => {
     const el = document.getElementById(id);
