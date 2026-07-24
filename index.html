@@ -12,6 +12,7 @@
 <body>
 
 <div class="container">
+    <!-- NAVBAR UTAMA -->
     <nav class="navbar">
         <a href="index.html" class="nav-item active">📈 Dashboard Utama</a>
         <a href="pasien.html" class="nav-item">👤 Manajemen Pasien</a>
@@ -21,7 +22,7 @@
         <h1>MONITORING KESEHATAN REAL-TIME</h1>
     </header>
 
-    <!-- CARDS SENSOR UTAMA (Urutan: BPM -> SpO2 -> Suhu -> Tensi) -->
+    <!-- CARDS SENSOR UTAMA -->
     <section class="cards">
         <div class="card">
             <div>❤️ Heart Rate (BPM)</div>
@@ -44,7 +45,7 @@
     <!-- GRID GRAFIK DAN GAUGE -->
     <section class="grid">
         <div class="charts">
-            <!-- BPM Dipindah ke Urutan Pertama -->
+            <!-- Grafik Denyut PPG Real-Time -->
             <div class="chart-box"><div id="chartHR"></div></div>
             <div class="chart-box"><div id="chartSpo2"></div></div>
             <div class="chart-box"><div id="chartTemp"></div></div>
@@ -91,8 +92,28 @@
         <span id="status">MENUNGGU DATA...</span>
     </section>
 
+    <!-- TOMBOL RESET UTAMA & KONTROL ALAT ESP32 -->
+    <section class="info-panel" style="margin-top: 20px; text-align: center;">
+        <h3>🎛️ Perintah / Kontrol Alat & Reset</h3>
+        
+        <!-- Tombol Reset Semua Data Real-time -->
+        <div style="margin-bottom: 15px;">
+            <button class="btn-log" style="background: #e74c3c; color: white; border: none; padding: 12px 25px; font-size: 15px; font-weight: bold; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 10px rgba(231, 76, 60, 0.4);" onclick="resetSemuaParameter()">
+                🔄 RESET SEMUA DATA REAL-TIME (KE 0)
+            </button>
+        </div>
+
+        <!-- Tombol Perintah Alur Alat Ke ESP32 -->
+        <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+            <button class="btn-log" style="background: #27ae60; color: white; border:none; padding: 10px 15px; border-radius: 5px; cursor: pointer;" onclick="sendCommand('ALUR_OXY')">🫁 Ukur Oksimeter</button>
+            <button class="btn-log" style="background: #2980b9; color: white; border:none; padding: 10px 15px; border-radius: 5px; cursor: pointer;" onclick="sendCommand('ALUR_SUHU')">🌡️ Ukur Suhu</button>
+            <button class="btn-log" style="background: #e67e22; color: white; border:none; padding: 10px 15px; border-radius: 5px; cursor: pointer;" onclick="sendCommand('ALUR_TENSI')">🩺 Ukur Tensi</button>
+            <button class="btn-log" style="background: #c0392b; color: white; border:none; padding: 10px 15px; border-radius: 5px; cursor: pointer;" onclick="sendCommand('STOP')">🛑 Stop Pump / Reset ESP</button>
+        </div>
+    </section>
+
     <!-- TABEL LOG RIWAYAT MEDIS -->
-    <section class="log-container">
+    <section class="log-container" style="margin-top: 20px;">
         <div class="log-header">
             <h3>📋 Log Riwayat Pemeriksaan Medis (Permanen)</h3>
             <div class="log-buttons">
@@ -114,12 +135,14 @@
                     </tr>
                 </thead>
                 <tbody id="log-table-body">
+                    <!-- Data riwayat akan diisi otomatis dari JavaScript -->
                 </tbody>
             </table>
         </div>
     </section>
 </div>
 
+<!-- FILE JAVASCRIPT UTAMA -->
 <script src="index.js?v=317"></script>
 </body>
 </html>
