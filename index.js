@@ -3,7 +3,7 @@ const client = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
 const topicReadings = "sensorReadings";
 const topicControl  = "sensorControl";
 
-// Memory Data Pasien
+// Memory Data Pasien Real-time
 let currentData = { temp: 0, spo2: 0, hr: 0, sys: 0, dia: 0 };
 let liveMmHg = 0;
 
@@ -17,6 +17,59 @@ let xDataHR = Array.from({ length: maxPoints }, (_, i) => i);
 let yDataHR = Array(maxPoints).fill(0);
 
 let isChartUpdatePending = false;
+
+// ================= FUNGSI RESET UTAMA =================
+function resetSemuaParameter() {
+  // 1. Reset variabel data di JavaScript
+  currentData = { temp: 0, spo2: 0, hr: 0, sys: 0, dia: 0 };
+  liveMmHg = 0;
+  irFilterBaseline = 0;
+
+  // 2. Reset tampilan Card UI
+  if (document.getElementById("temp")) {
+    document.getElementById("temp").innerHTML = "0.0°C";
+    document.getElementById("spo2").innerHTML = "0%";
+    document.getElementById("hr").innerHTML   = "0 bpm";
+    document.getElementById("bp").innerHTML   = "0/0 mmHg";
+  }
+
+  // 3. Reset Status Klinis & Support System
+  let statusEl = document.getElementById("status");
+  let adviceBox = document.getElementById("medical-advice");
+  if (statusEl) {
+    statusEl.innerHTML = "DATA DIRESET / MENUNGGU DATA BARU";
+    statusEl.style.color = "orange";
+  }
+  if (adviceBox) {
+    adviceBox.innerHTML = "Tampilan berhasil direset. Silakan posisikan sensor pada pasien untuk pemeriksaan baru.";
+  }
+
+  // 4. Reset Buffer Grafik Denyut
+  yDataHR = Array(maxPoints).fill(0);
+  if (document.getElementById("chartHR")) {
+    Plotly.react("chartHR", [{
+      x: xDataHR,
+      y: yDataHR,
+      mode: "lines",
+      line: { color: "#ff3333", width: 2, shape: 'spline' }
+    }], {
+      ...darkLayout,
+      title: "Grafik Denyut Jantung (PPG)",
+      yaxis: { autorange: true }
+    });
+  }
+
+  // 5. Reset Gauges ke 0
+  drawGauge("gaugeHR", 0, "lime", 150, "bpm");
+  drawGauge("gaugeSpo2", 0, "lime", 100, "%");
+  drawGauge("gaugeTemp", 0, "cyan", 50, "°C");
+  drawGauge("gaugeBP", 0, "orange", 200, "mmHg");
+
+  // 6. Kirim perintah RESET/STOP ke ESP32 agar pompa/alat juga berhenti
+  sendCommand("STOP");
+
+  console.log("Semua Parameter Berhasil Direset ke 0! ✅");
+}
 
 // ================= LOGIKA MEMUAT PROFIL PASIEN =================
 function muatProfilPasienLama() {
@@ -201,7 +254,7 @@ client.on("message", (topic, msg) => {
     // 1. Ambil nilai raw/IR/PPG dari ESP32
     let rawWave = data.raw !== undefined ? Number(data.raw) : (data.ir !== undefined ? Number(data.ir) : (data.ppg !== undefined ? Number(data.ppg) : 0));
 
-    // 2. DETEKSI LEPAS JARI / RESET OTOMATIS KE 0
+    // 2. DETEKSI LEPAS JARI / RESET AUTOMATIS
     if (data.finger === false || rawWave < 20000 || (data.spo2 === 0 && data.heartRate === 0)) {
       currentData.temp = 0;
       currentData.spo2 = 0;
@@ -233,7 +286,7 @@ client.on("message", (topic, msg) => {
     yDataHR.shift();
     yDataHR.push(plotValue);
 
-    // Update Grafik Denyut Jantung PPG (Real-time Berdenyut)
+    // Update Grafik Denyut PPG
     if (!isChartUpdatePending && document.getElementById("chartHR")) {
       isChartUpdatePending = true;
       requestAnimationFrame(() => {
@@ -263,18 +316,17 @@ client.on("message", (topic, msg) => {
     if (systolic > 0 && diastolic > 0) { 
       currentData.sys = systolic; 
       currentData.dia = diastolic; 
-      simpanKeRiwayatLog();
+      simpanKeRiwayatLog(); // Otomatis simpan ke riwayat permanen saat tensi selesai
     }
 
-    // 5. UPDATE GRAFIK TREN (KEMBALI KE SEMULA MENGGUNAKAN EXTENDTRACES)
+    // 5. UPDATE GRAFIK & CARD UI
     if (document.getElementById("temp")) {
-      // Update Nilai di Card UI
       document.getElementById("temp").innerHTML = (currentData.temp > 0 ? currentData.temp.toFixed(1) : "0.0") + "°C";
       document.getElementById("spo2").innerHTML = (currentData.spo2 > 0 ? currentData.spo2 : "0") + "%";
       document.getElementById("hr").innerHTML   = (currentData.hr > 0 ? currentData.hr : "0") + " bpm";
       document.getElementById("bp").innerHTML   = currentData.sys + "/" + currentData.dia + " mmHg";
 
-      // Grafik SpO2, Suhu, dan Tensi Berjalan Seperti Semula
+      // ExtendTraces Grafik Tren
       Plotly.extendTraces("chartSpo2", { x: [[xIndex]], y: [[currentData.spo2]] }, [0]);
       Plotly.extendTraces("chartTemp", { x: [[xIndex]], y: [[currentData.temp]] }, [0]);
       Plotly.extendTraces("chartTensi", { x: [[xIndex]], y: [[liveMmHg]] }, [0]); 
