@@ -7,7 +7,7 @@ const topicControl  = "sensorControl";
 let currentData = { temp: 0, spo2: 0, hr: 0, sys: 0, dia: 0 };
 let liveMmHg = 0;
 
-// Dynamic Filter Baseline untuk Grafik Denyut PPG
+// Dynamic Filter Baseline & Min-Max Tracker untuk Grafik Denyut PPG
 let irFilterBaseline = 0;
 
 // Sumbu X & Buffer Gelombang Real-time (Khusus Grafik Denyut)
@@ -20,12 +20,10 @@ let isChartUpdatePending = false;
 
 // ================= FUNGSI RESET UTAMA =================
 function resetSemuaParameter() {
-  // 1. Reset variabel data di JavaScript
   currentData = { temp: 0, spo2: 0, hr: 0, sys: 0, dia: 0 };
   liveMmHg = 0;
   irFilterBaseline = 0;
 
-  // 2. Reset tampilan Card UI
   if (document.getElementById("temp")) {
     document.getElementById("temp").innerHTML = "0.0°C";
     document.getElementById("spo2").innerHTML = "0%";
@@ -33,7 +31,6 @@ function resetSemuaParameter() {
     document.getElementById("bp").innerHTML   = "0/0 mmHg";
   }
 
-  // 3. Reset Status Klinis & Support System
   let statusEl = document.getElementById("status");
   let adviceBox = document.getElementById("medical-advice");
   if (statusEl) {
@@ -44,7 +41,7 @@ function resetSemuaParameter() {
     adviceBox.innerHTML = "Tampilan berhasil direset. Silakan posisikan sensor pada pasien untuk pemeriksaan baru.";
   }
 
-  // 4. Reset Buffer Grafik Denyut
+  // Reset Buffer Grafik Denyut
   yDataHR = Array(maxPoints).fill(0);
   if (document.getElementById("chartHR")) {
     Plotly.react("chartHR", [{
@@ -59,14 +56,14 @@ function resetSemuaParameter() {
     });
   }
 
-  // 5. Reset Gauges ke 0
+  // Reset Gauges ke 0
   drawGauge("gaugeHR", 0, "lime", 150, "bpm");
   drawGauge("gaugeSpo2", 0, "lime", 100, "%");
   drawGauge("gaugeTemp", 0, "cyan", 50, "°C");
   drawGauge("gaugeBP", 0, "orange", 200, "mmHg");
 
-  // 6. Kirim perintah RESET/STOP ke ESP32 agar pompa/alat juga berhenti
-  sendCommand("STOP");
+  // Kirim perintah RESET ke ESP32
+  sendCommand("RESET");
 
   console.log("Semua Parameter Berhasil Direset ke 0! ✅");
 }
@@ -251,11 +248,14 @@ client.on("message", (topic, msg) => {
   try {
     let data = JSON.parse(msg.toString());
 
-    // 1. Ambil nilai raw/IR/PPG dari ESP32
-    let rawWave = data.raw !== undefined ? Number(data.raw) : (data.ir !== undefined ? Number(data.ir) : (data.ppg !== undefined ? Number(data.ppg) : 0));
+    // 1. Ekstraksi Nilai Raw IR / PPG
+    let rawWave = 0;
+    if (data.raw !== undefined) rawWave = Number(data.raw);
+    else if (data.ir !== undefined) rawWave = Number(data.ir);
+    else if (data.ppg !== undefined) rawWave = Number(data.ppg);
 
-    // 2. DETEKSI LEPAS JARI / RESET AUTOMATIS
-    if (data.finger === false || rawWave < 20000 || (data.spo2 === 0 && data.heartRate === 0)) {
+    // 2. DETEKSI JARI LEPAS
+    if (data.finger === false || rawWave < 10000 || (data.spo2 === 0 && (data.heartRate === 0 || data.hr === 0))) {
       currentData.temp = 0;
       currentData.spo2 = 0;
       currentData.hr   = 0;
@@ -271,11 +271,12 @@ client.on("message", (topic, msg) => {
       if (rawHr !== undefined) currentData.hr = Number(rawHr);
     }
 
-    // 3. ESTRAKSI DENYUTAN KHUSUS GRAFIK DENYUT JANTUNG
+    // 3. PENGOLAHAN GELOMBANG DENYUT PPG (AGAR TIDAK DATAR)
     let plotValue = 0;
     if (rawWave > 0) {
       if (irFilterBaseline === 0) irFilterBaseline = rawWave;
-      irFilterBaseline = (irFilterBaseline * 0.95) + (rawWave * 0.05);
+      // Filter Rata-rata Berjalan Sederhana
+      irFilterBaseline = (irFilterBaseline * 0.9) + (rawWave * 0.1);
       plotValue = rawWave - irFilterBaseline;
     }
 
@@ -286,26 +287,31 @@ client.on("message", (topic, msg) => {
     yDataHR.shift();
     yDataHR.push(plotValue);
 
-    // Update Grafik Denyut PPG
+    // Render ulang grafik PPG berdenyut
     if (!isChartUpdatePending && document.getElementById("chartHR")) {
       isChartUpdatePending = true;
       requestAnimationFrame(() => {
+        // Hitung rentang min dan max data di buffer agar sumbu Y dinamis berayun
+        let minVal = Math.min(...yDataHR);
+        let maxVal = Math.max(...yDataHR);
+        let padding = (maxVal - minVal) * 0.2 || 10;
+
         Plotly.react("chartHR", [{
           x: xDataHR,
           y: yDataHR,
           mode: "lines",
-          line: { color: "#ff3333", width: 2, shape: 'spline' }
+          line: { color: "#ff3333", width: 2.5, shape: 'spline' }
         }], {
           ...darkLayout,
           title: "Grafik Denyut Jantung (PPG)",
-          yaxis: { autorange: true, zeroline: false },
+          yaxis: { range: [minVal - padding, maxVal + padding], zeroline: false },
           xaxis: { range: [xDataHR[0], xDataHR[maxPoints - 1]] }
         });
         isChartUpdatePending = false;
       });
     }
 
-    // 4. Parsing Tensi Live & Tensi Hasil Akhir
+    // 4. Parsing Tensi
     if (data.mmHgLive !== undefined) {
       liveMmHg = Number(data.mmHgLive);
     }
@@ -316,17 +322,16 @@ client.on("message", (topic, msg) => {
     if (systolic > 0 && diastolic > 0) { 
       currentData.sys = systolic; 
       currentData.dia = diastolic; 
-      simpanKeRiwayatLog(); // Otomatis simpan ke riwayat permanen saat tensi selesai
+      simpanKeRiwayatLog();
     }
 
-    // 5. UPDATE GRAFIK & CARD UI
+    // 5. UPDATE GRAFIK TREN DENGAN EXTENDTRACES (BERJALAN MULUS KE SAMPING)
     if (document.getElementById("temp")) {
       document.getElementById("temp").innerHTML = (currentData.temp > 0 ? currentData.temp.toFixed(1) : "0.0") + "°C";
       document.getElementById("spo2").innerHTML = (currentData.spo2 > 0 ? currentData.spo2 : "0") + "%";
       document.getElementById("hr").innerHTML   = (currentData.hr > 0 ? currentData.hr : "0") + " bpm";
       document.getElementById("bp").innerHTML   = currentData.sys + "/" + currentData.dia + " mmHg";
 
-      // ExtendTraces Grafik Tren
       Plotly.extendTraces("chartSpo2", { x: [[xIndex]], y: [[currentData.spo2]] }, [0]);
       Plotly.extendTraces("chartTemp", { x: [[xIndex]], y: [[currentData.temp]] }, [0]);
       Plotly.extendTraces("chartTensi", { x: [[xIndex]], y: [[liveMmHg]] }, [0]); 
@@ -335,7 +340,6 @@ client.on("message", (topic, msg) => {
         Plotly.relayout(id, { "xaxis.range": [Math.max(0, xIndex - 40), xIndex] });
       });
 
-      // Update Gauges
       let hrColor = (currentData.hr > 100 || (currentData.hr < 60 && currentData.hr > 0)) ? "red" : "lime";
       drawGauge("gaugeHR", currentData.hr, hrColor, 150, "bpm");
       drawGauge("gaugeSpo2", currentData.spo2, "lime", 100, "%");
@@ -350,7 +354,7 @@ client.on("message", (topic, msg) => {
   }
 });
 
-// ================= KONTROL EMERGENCY / PERINTAH KE ESP32 =================
+// ================= KONTROL PERINTAH KE ESP32 =================
 function sendCommand(cmd) {
   if (client && client.connected) {
     client.publish(topicControl, cmd);
