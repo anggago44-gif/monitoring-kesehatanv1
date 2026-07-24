@@ -302,52 +302,42 @@ function evaluasiKondisiKlinis(mmHgLive) {
 
   let issues = [];
 
-  // Evaluasi Suhu
+  // 1. Evaluasi Suhu
   if (currentData.temp > 37.5) issues.push("Demam (Suhu Tinggi)");
   if (currentData.temp > 0 && currentData.temp < 35.0) issues.push("Hipotermia (Suhu Rendah)");
 
-  // Evaluasi SpO2
+  // 2. Evaluasi SpO2
   if (currentData.spo2 > 0 && currentData.spo2 < 95) issues.push("Hipoksia (SpO2 Rendah)");
 
-  // Evaluasi Jantung (HR)
+  // 3. Evaluasi Heart Rate (HR)
   if (currentData.hr > 100) issues.push("Takikardia (HR Tinggi)");
   if (currentData.hr > 0 && currentData.hr < 50) issues.push("Bradikardia (HR Rendah)");
 
-  // Evaluasi Tekanan Darah (Tensi)
+  // 4. Evaluasi Tekanan Darah (SAMA PERSIS DENGAN KODE ESP32 ANDA)
   if (currentData.sys > 0 && currentData.dia > 0) {
-    if (currentData.sys >= 140 || currentData.dia >= 90) {
-      issues.push(`Hipertensi Stage 2 (${currentData.sys}/${currentData.dia} mmHg)`);
-    } else if ((currentData.sys >= 130 && currentData.sys <= 139) || (currentData.dia >= 80 && currentData.dia <= 89)) {
-      issues.push(`Hipertensi Stage 1 (${currentData.sys}/${currentData.dia} mmHg)`);
-    } else if (currentData.sys >= 120 && currentData.sys <= 129 && currentData.dia < 80) {
-      issues.push(`Pre-Hipertensi (${currentData.sys}/${currentData.dia} mmHg)`);
-    } else if (currentData.sys < 90 || currentData.dia < 60) {
-      issues.push(`Hipotensi / Tensi Rendah (${currentData.sys}/${currentData.dia} mmHg)`);
+    let tensiTinggi = (currentData.sys > 120 || currentData.dia > 80);
+    let tensiRendah = (currentData.sys < 90  || currentData.dia < 60);
+
+    if (tensiTinggi) {
+      issues.push(`Tensi Tinggi (${currentData.sys}/${currentData.dia} mmHg)`);
+    } else if (tensiRendah) {
+      issues.push(`Tensi Rendah (${currentData.sys}/${currentData.dia} mmHg)`);
     }
   } else if (mmHgLive > 10) {
     issues.push(`Manset Sedang Memompa (${mmHgLive} mmHg)...`);
   }
 
-  // Update Status UI
+  // Update Tampilan UI Dashboard
   if (issues.length === 0) {
     statusEl.innerText = "AMAN (NORMAL)";
     statusEl.style.color = "#2ecc71";
     adviceBox.innerHTML = "✅ <strong>Kondisi Normal:</strong> Seluruh tanda vital & tekanan darah pasien dalam keadaan baik.";
   } else {
-    let adaBahaya = issues.some(i => i.includes("Demam") || i.includes("Hipoksia") || i.includes("Hipertensi") || i.includes("Hipotensi") || i.includes("Takikardia"));
-    
-    if (adaBahaya) {
-      statusEl.innerText = "BUTUH PERAWATAN";
-      statusEl.style.color = "#e74c3c";
-    } else {
-      statusEl.innerText = "SEDANG MEMERIKSA...";
-      statusEl.style.color = "orange";
-    }
-
+    statusEl.innerText = "BUTUH PERAWATAN";
+    statusEl.style.color = "#e74c3c";
     adviceBox.innerHTML = `⚠️ <strong>Peringatan Medis:</strong><br> • ${issues.join("<br> • ")}`;
   }
 }
-
 // ================= EVENT LISTENER LOAD =================
 window.addEventListener("load", () => {
   muatProfilPasienLama();
