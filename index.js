@@ -4,8 +4,8 @@ const topicReadings = "sensorReadings";
 
 // Memory Data Pasien Real-time
 let currentData = { temp: 0, spo2: 0, hr: 0, sys: 0, dia: 0 };
+let liveMmHg = 0;
 let ecgPhase = 0;
-let plotlyReady = false;
 
 // Config Buffer Grafik (Fixed Array 30 Point)
 const MAX_POINTS = 30;
@@ -20,6 +20,7 @@ function resetSemuaData() {
   console.log("Memulai proses reset data...");
 
   currentData = { temp: 0, spo2: 0, hr: 0, sys: 0, dia: 0 };
+  liveMmHg = 0;
   
   yHrBuffer.fill(0);
   ySpo2Buffer.fill(0);
@@ -41,14 +42,7 @@ function resetSemuaData() {
     adviceBox.innerText = "Sistem telah direset. Silakan tempatkan sensor pada pasien.";
   }
 
-  // Reset tampilan grafik & gauge secara penuh
-  if (plotlyReady) {
-    Plotly.react("chartHR", [{ x: xBuffer, y: yHrBuffer, mode: "lines", line: { color: "#ff3333", width: 2 } }], chartLayout);
-    Plotly.react("chartSpo2", [{ x: xBuffer, y: ySpo2Buffer, mode: "lines", line: { color: "lime", width: 2 } }], chartLayout);
-    Plotly.react("chartTemp", [{ x: xBuffer, y: yTempBuffer, mode: "lines", line: { color: "cyan", width: 2 } }], chartLayout);
-    Plotly.react("chartTensi", [{ x: xBuffer, y: yTensiBuffer, mode: "lines", line: { color: "orange", width: 2 } }], chartLayout);
-  }
-
+  renderChartsFast();
   updateGaugeFast("gaugeHR", 0, "lime");
   updateGaugeFast("gaugeSpo2", 0, "lime");
   updateGaugeFast("gaugeTemp", 0, "cyan");
@@ -166,17 +160,15 @@ const chartLayout = {
 function initPlotly() {
   if (!document.getElementById("chartHR")) return;
 
-  Plotly.newPlot("chartHR", [{ x: xBuffer, y: yHrBuffer, mode: "lines", line: { color: "#ff3333", width: 2 } }], { ...chartLayout, title: "ECG / BPM" }, { responsive: true });
-  Plotly.newPlot("chartSpo2", [{ x: xBuffer, y: ySpo2Buffer, mode: "lines", line: { color: "lime", width: 2 } }], { ...chartLayout, title: "SpO₂ (%)" }, { responsive: true });
-  Plotly.newPlot("chartTemp", [{ x: xBuffer, y: yTempBuffer, mode: "lines", line: { color: "cyan", width: 2 } }], { ...chartLayout, title: "Suhu (°C)" }, { responsive: true });
-  Plotly.newPlot("chartTensi", [{ x: xBuffer, y: yTensiBuffer, mode: "lines", line: { color: "orange", width: 2 } }], { ...chartLayout, title: "Manset (mmHg)" }, { responsive: true });
+  Plotly.newPlot("chartHR", [{ x: xBuffer, y: yHrBuffer, mode: "lines", line: { color: "#ff3333", width: 2 } }], { ...chartLayout, title: "ECG / BPM" }, { responsive: true, displayModeBar: false });
+  Plotly.newPlot("chartSpo2", [{ x: xBuffer, y: ySpo2Buffer, mode: "lines", line: { color: "lime", width: 2 } }], { ...chartLayout, title: "SpO₂ (%)" }, { responsive: true, displayModeBar: false });
+  Plotly.newPlot("chartTemp", [{ x: xBuffer, y: yTempBuffer, mode: "lines", line: { color: "cyan", width: 2 } }], { ...chartLayout, title: "Suhu (°C)" }, { responsive: true, displayModeBar: false });
+  Plotly.newPlot("chartTensi", [{ x: xBuffer, y: yTensiBuffer, mode: "lines", line: { color: "orange", width: 2 } }], { ...chartLayout, title: "Manset (mmHg)" }, { responsive: true, displayModeBar: false });
 
   initGauge("gaugeHR", "bpm", 150);
   initGauge("gaugeSpo2", "%", 100);
   initGauge("gaugeTemp", "°C", 50);
   initGauge("gaugeBP", "mmHg", 200);
-
-  plotlyReady = true;
 }
 
 function initGauge(id, unit, max) {
@@ -189,17 +181,17 @@ function initGauge(id, unit, max) {
       bar: { color: "lime", thickness: 0.3 },
       bgcolor: "black", bordercolor: "#333", borderwidth: 1
     }
-  }], { paper_bgcolor: "black", font: { color: "white" }, height: 160, margin: { t: 20, b: 10, l: 10, r: 10 } }, { responsive: true });
+  }], { paper_bgcolor: "black", font: { color: "white" }, height: 160, margin: { t: 20, b: 10, l: 10, r: 10 } }, { responsive: true, displayModeBar: false });
 }
 
-// FUNGSI UPDATE GRAFIK OPTIMAL (MEMANFAATKAN EXTENDTRACES AGAR TANPA LAG)
-function pushChartDataFast(newEcg, newSpo2, newTemp, newTensi) {
-  if (!plotlyReady) return;
+// UPDATE RENDER GRAFIK PAKAI REACT CEPAT
+function renderChartsFast() {
+  if (!document.getElementById("chartHR")) return;
 
-  Plotly.extendTraces("chartHR", { y: [[newEcg]] }, [0], MAX_POINTS);
-  Plotly.extendTraces("chartSpo2", { y: [[newSpo2]] }, [0], MAX_POINTS);
-  Plotly.extendTraces("chartTemp", { y: [[newTemp]] }, [0], MAX_POINTS);
-  Plotly.extendTraces("chartTensi", { y: [[newTensi]] }, [0], MAX_POINTS);
+  Plotly.react("chartHR", [{ x: xBuffer, y: yHrBuffer, mode: "lines", line: { color: "#ff3333", width: 2 } }], { ...chartLayout, title: "ECG / BPM" });
+  Plotly.react("chartSpo2", [{ x: xBuffer, y: ySpo2Buffer, mode: "lines", line: { color: "lime", width: 2 } }], { ...chartLayout, title: "SpO₂ (%)" });
+  Plotly.react("chartTemp", [{ x: xBuffer, y: yTempBuffer, mode: "lines", line: { color: "cyan", width: 2 } }], { ...chartLayout, title: "Suhu (°C)" });
+  Plotly.react("chartTensi", [{ x: xBuffer, y: yTensiBuffer, mode: "lines", line: { color: "orange", width: 2 } }], { ...chartLayout, title: "Manset (mmHg)" });
 }
 
 function updateGaugeFast(id, val, color) {
@@ -213,13 +205,13 @@ function generateEcgPoint(bpm) {
   if (bpm <= 0) return 0;
   ecgPhase = (ecgPhase + 1) % 8;
   
-  if (ecgPhase === 3) return bpm * 1.4; // Gelombang Puncak
-  if (ecgPhase === 4) return -bpm * 0.2; // Gelombang Siklus Lembah
+  if (ecgPhase === 3) return bpm * 1.4;
+  if (ecgPhase === 4) return -bpm * 0.2;
   if (ecgPhase === 5) return bpm * 0.3;
   return bpm * 0.8 + (Math.random() * 2 - 1);
 }
 
-// ================= MQTT RECEIVER =================
+// ================= MQTT RECEIVER (HANYA SIMPAN DATA MEMORI) =================
 client.on("connect", () => {
   console.log("MQTT Terhubung ✅");
   client.subscribe(topicReadings);
@@ -231,42 +223,54 @@ client.on("message", (topic, msg) => {
   try {
     let data = JSON.parse(msg.toString());
 
-    // 1. Parsing Suhu (Abaikan suhu < 25°C)
+    // 1. Suhu
     let rawTemp = data.temperature ?? data.temp;
     if (rawTemp !== undefined) {
       let valTemp = Number(rawTemp);
       currentData.temp = (valTemp >= 25 && valTemp < 50) ? valTemp : 0;
     }
 
-    // 2. Parsing SpO2 & Heart Rate
+    // 2. SpO2 & HR
     if (data.spo2 && Number(data.spo2) > 0) currentData.spo2 = Number(data.spo2);
     let rawHr = data.heartRate ?? data.heartrate ?? data.hr;
     if (rawHr && Number(rawHr) > 0) currentData.hr = Number(rawHr);
 
-    // 3. Parsing Tensi
-    let mmHgLive = Number(data.mmHgLive || data.pressure || data.mmhg || 0);
+    // 3. Tensi
+    liveMmHg = Number(data.mmHgLive || data.pressure || data.mmhg || 0);
     let sys = Number(data.systolic || data.sys || 0);
     let dia = Number(data.diastolic || data.dia || 0);
 
-    // Simpan riwayat HANYA jika ada data tensi baru (Cegah lag akibat penulisan log berulang)
     if (sys > 0 && dia > 0 && (sys !== currentData.sys || dia !== currentData.dia)) {
       currentData.sys = sys;
       currentData.dia = dia;
       simpanKeRiwayatLog();
     }
 
-    // 4. Hitung Nilai Titik Baru
-    let valEcg = generateEcgPoint(currentData.hr);
-    let valTensi = mmHgLive > 0 ? mmHgLive : currentData.sys;
-
-    // 5. Update Grafik Ringan & Update Tampilan UI
-    pushChartDataFast(valEcg, currentData.spo2, currentData.temp, valTensi);
-    updateUI(mmHgLive);
-
   } catch (e) {
     console.error("Data Error:", e);
   }
 });
+
+// ================= RENDERING LOOP (DIBATASI HANYA 5 FPS / 200ms AGAR DOKUMEN SUPER ENTENG) =================
+setInterval(() => {
+  // Push data ke buffer array
+  yHrBuffer.shift(); 
+  yHrBuffer.push(generateEcgPoint(currentData.hr));
+
+  ySpo2Buffer.shift(); 
+  ySpo2Buffer.push(currentData.spo2);
+
+  yTempBuffer.shift(); 
+  yTempBuffer.push(currentData.temp);
+
+  yTensiBuffer.shift(); 
+  let valTensi = liveMmHg > 0 ? liveMmHg : currentData.sys;
+  yTensiBuffer.push(valTensi);
+
+  // Update UI & Grafis berkala (bukan secara liar dari MQTT)
+  updateUI(liveMmHg);
+  renderChartsFast();
+}, 200); // 200ms = 5 frame per detik, sangat mulus dan ramah browser
 
 function updateUI(mmHgLive) {
   if (!document.getElementById("temp")) return;
