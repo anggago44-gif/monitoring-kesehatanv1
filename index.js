@@ -225,13 +225,17 @@ function updateGaugeFast(id, val, color) {
   }
 }
 
-// FUNGSI MEMBUAT PULSA DENYUT JANTUNG NYATA
+// FUNGSI MEMBUAT PULSA DENYUT JANTUNG NYATA (DENGAN PROTEKSI FLATLINE)
 function generateEcgPoint(bpm) {
-  if (!bpm || Number(bpm) <= 0) return 0;
+  // PENGAMAN 1: Jika BPM bernilai 0 atau tidak valid, paksa kembalikan 0 total!
+  if (!bpm || Number(bpm) <= 0) {
+    ecgPhase = 0; // Reset fase gelombang ke 0
+    return 0;
+  }
   
   ecgPhase = (ecgPhase + 1) % 8;
   
-  if (ecgPhase === 3) return bpm * 1.4; // Puncak R
+  if (ecgPhase === 3) return bpm * 1.4;  // Puncak R
   if (ecgPhase === 4) return -bpm * 0.2; // Lembah S
   if (ecgPhase === 5) return bpm * 0.3;  // Gelombang T
   return bpm * 0.8;
@@ -249,7 +253,7 @@ client.on("message", (topic, msg) => {
   // Reset Timeout Timer setiap kali ada data MQTT baru masuk
   clearTimeout(mqttTimeoutTimer);
   mqttTimeoutTimer = setTimeout(() => {
-    // Jika alat berhenti kirim data >3 detik (keluar menu / sensor mati)
+    // Jalankan jika alat tidak mengirim data selama 3 detik (misal: keluar menu)
     currentData.hr = 0;
     currentData.spo2 = 0;
     yHrBuffer.fill(0);
@@ -293,15 +297,18 @@ client.on("message", (topic, msg) => {
       simpanKeRiwayatLog();
     }
 
-    // ================= 5. UPDATE BUFFER GRAFIK =================
-    // Logika Flatline Instan: Jika Jari Lepas (HR / SpO2 <= 0)
-    if (currentData.hr <= 0 || currentData.spo2 <= 0) {
+    // ================= 5. UPDATE BUFFER GRAFIK (LOGIKA FLATLINE STRIKTIF) =================
+    // PENGAMAN 2: Cek apakah jari terpasang secara eksplisit
+    let isFingerDetected = (currentData.hr > 0 && currentData.spo2 > 0);
+
+    if (!isFingerDetected) {
+      // JARI LEPAS: Reset nilai ke 0 & paksa grafik DATAR TOTAL di 0
       currentData.hr = 0;
       currentData.spo2 = 0;
-      yHrBuffer.fill(0);   // Seluruh grafik HR seketika rata di angka 0
-      ySpo2Buffer.fill(0); // Seluruh grafik SpO2 seketika rata di angka 0
+      yHrBuffer.fill(0);
+      ySpo2Buffer.fill(0);
     } else {
-      // Ada jari terdeteksi: Update gelombang biasa
+      // JARI TERPASANG: Dorong nilai denyut baru
       yHrBuffer.shift(); 
       yHrBuffer.push(generateEcgPoint(currentData.hr));
 
