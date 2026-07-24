@@ -1,23 +1,21 @@
 // ================= MQTT CONFIGURATION =================
-// Menggunakan WebSocket Broker HiveMQ Public
 const client = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
 const topicReadings = "sensorReadings";
 const topicControl  = "sensorControl";
 
 // Memory Data Pasien
-let currentData = { temp: 0, tempRaw: 0, spo2: 0, hr: 0, sys: 0, dia: 0 };
+let currentData = { temp: 0, spo2: 0, hr: 0, sys: 0, dia: 0 };
 let liveMmHg = 0;
 
-// Counter Sumbu X & Buffer Data PPG (Sinyal Raw IR)
+// Sumbu X & Buffer Gelombang Real-time (Sama seperti pembacaan |||| di LCD)
 let xIndex = 0;
-const maxPoints = 60; // Titik sinyal yang tampil di layar
+const maxPoints = 50; // Titik sinyal berjalan
 let xDataHR = Array.from({ length: maxPoints }, (_, i) => i);
 let yDataHR = Array(maxPoints).fill(0);
 
-// Flag Animation Frame agar Rendering Plotly tidak Overload/Freeze
 let isChartUpdatePending = false;
 
-// ================= LOGIKA MEMUAT PROFIL AKTIF =================
+// ================= LOGIKA MEMUAT PROFIL PASIEN =================
 function muatProfilPasienLama() {
   let profilTersimpan = localStorage.getItem("profilPasienAktif");
   
@@ -39,7 +37,6 @@ function muatProfilPasienLama() {
   }
 }
 
-// Helper untuk memperbarui teks HTML secara aman
 function updateTextElement(id, value) {
   let el = document.getElementById(id);
   if (el) el.innerText = value;
@@ -134,7 +131,7 @@ function downloadCSV() {
   document.body.removeChild(link);
 }
 
-// ================= PLOTLY INITIALIZATION =================
+// ================= PLOTLY INITIALIZATION (NAMA JUDUL DIPERBAIKI) =================
 const darkLayout = {
   paper_bgcolor: "black",
   plot_bgcolor: "black",
@@ -147,16 +144,17 @@ if (document.getElementById("chartHR")) {
     x: xDataHR,
     y: yDataHR,
     mode: "lines",
-    line: { color: "#ff3333", width: 2 }
+    line: { color: "#ff3333", width: 2, shape: 'spline' } // Shape spline untuk efek kurva halus
   }], {
     ...darkLayout,
-    title: "Grafik Sinyal Denyut Jantung Real-time (PPG Wave)",
+    title: "Grafik Denyut Jantung (PPG)", // Judul diperpendek
     yaxis: { autorange: true }
   }, { responsive: true });
 
-  Plotly.newPlot("chartSpo2", [{ x: [], y: [], mode: "lines", line: { color: "lime", width: 2.5 } }], { ...darkLayout, title: "Tren SpO₂ (%)" }, { responsive: true });
-  Plotly.newPlot("chartTemp", [{ x: [], y: [], mode: "lines", line: { color: "cyan", width: 2.5 } }], { ...darkLayout, title: "Tren Suhu Tubuh (°C)" }, { responsive: true });
-  Plotly.newPlot("chartTensi", [{ x: [], y: [], mode: "lines", line: { color: "orange", width: 2.5 } }], { ...darkLayout, title: "Grafik Tekanan Manset Real-time (mmHg)" }, { responsive: true });
+  // Menghapus kata "Tren" dari judul grafik
+  Plotly.newPlot("chartSpo2", [{ x: [], y: [], mode: "lines", line: { color: "lime", width: 2.5 } }], { ...darkLayout, title: "SpO₂ (%)" }, { responsive: true });
+  Plotly.newPlot("chartTemp", [{ x: [], y: [], mode: "lines", line: { color: "cyan", width: 2.5 } }], { ...darkLayout, title: "Suhu Tubuh (°C)" }, { responsive: true });
+  Plotly.newPlot("chartTensi", [{ x: [], y: [], mode: "lines", line: { color: "orange", width: 2.5 } }], { ...darkLayout, title: "Tekanan Manset (mmHg)" }, { responsive: true });
 }
 
 function drawGauge(id, value, color, max, unit) {
@@ -198,59 +196,54 @@ client.on("message", (topic, msg) => {
   try {
     let data = JSON.parse(msg.toString());
 
-    // 1. Parsing Suhu Tubuh (Mencegah Angka Hilang/Nol Saat Streaming IR)
-    if (data.temperature !== undefined && Number(data.temperature) > 0) {
-      currentData.temp = Number(data.temperature);
-    } else if (data.temp !== undefined && Number(data.temp) > 0) {
-      currentData.temp = Number(data.temp);
-    }
-    if (data.tempRaw !== undefined && Number(data.tempRaw) > 0) {
-      currentData.tempRaw = Number(data.tempRaw);
-    }
+    // 1. Parsing Nilai Sinyal Mentah (IR / RAW PPG)
+    let rawWave = data.raw !== undefined ? Number(data.raw) : (data.ir !== undefined ? Number(data.ir) : (data.ppg !== undefined ? Number(data.ppg) : 0));
 
-    // 2. Parsing SpO2
-    if (data.spo2 !== undefined && Number(data.spo2) > 0) {
-      currentData.spo2 = Number(data.spo2);
-    }
+    // 2. DETEKSI LEPAS JARI / RESET OTOMATIS KE 0
+    // Jika data.finger == false / rawWave == 0 / hr & spo2 bernilai 0 dari ESP32
+    if (data.finger === false || (rawWave === 0 && (data.spo2 === 0 || data.spo2 === undefined))) {
+      currentData.temp = 0;
+      currentData.spo2 = 0;
+      currentData.hr   = 0;
+      rawWave = 0;
+    } else {
+      // Jika Ada Jari Dipasang: Update Data
+      if (data.temperature !== undefined) currentData.temp = Number(data.temperature);
+      else if (data.temp !== undefined) currentData.temp = Number(data.temp);
 
-    // 3. Parsing Heart Rate (BPM)
-    let rawHr = data.heartRate || data.heartrate || data.hr;
-    if (rawHr !== undefined && Number(rawHr) > 0) {
-      currentData.hr = Number(rawHr);
-    }
-
-    // 4. PARSING & UPDATE SINYAL DENYUT RAW PPG / IR
-    let rawWave = data.raw !== undefined ? Number(data.raw) : (data.ir !== undefined ? Number(data.ir) : (data.ppg !== undefined ? Number(data.ppg) : null));
-
-    if (rawWave !== null) {
-      xIndex++;
-      xDataHR.shift();
-      xDataHR.push(xIndex);
+      if (data.spo2 !== undefined) currentData.spo2 = Number(data.spo2);
       
-      yDataHR.shift();
-      yDataHR.push(rawWave);
-
-      // Rendering dengan requestAnimationFrame agar Web Mulus (Tidak Freeze)
-      if (!isChartUpdatePending && document.getElementById("chartHR")) {
-        isChartUpdatePending = true;
-        requestAnimationFrame(() => {
-          Plotly.react("chartHR", [{
-            x: xDataHR,
-            y: yDataHR,
-            mode: "lines",
-            line: { color: "#ff3333", width: 2 }
-          }], {
-            ...darkLayout,
-            title: "Grafik Sinyal Denyut Jantung Real-time (PPG Wave)",
-            yaxis: { autorange: true },
-            xaxis: { range: [xDataHR[0], xDataHR[maxPoints - 1]] }
-          });
-          isChartUpdatePending = false;
-        });
-      }
+      let rawHr = data.heartRate || data.heartrate || data.hr;
+      if (rawHr !== undefined) currentData.hr = Number(rawHr);
     }
 
-    // 5. Parsing Tensi Live & Tensi Hasil Akhir
+    // 3. UPDATE GRAFIK DENYUT PPG REAL-TIME (SAMA SEPERTI TAMPILAN DENYUT |||| DI LCD)
+    xIndex++;
+    xDataHR.shift();
+    xDataHR.push(xIndex);
+    
+    yDataHR.shift();
+    yDataHR.push(rawWave);
+
+    if (!isChartUpdatePending && document.getElementById("chartHR")) {
+      isChartUpdatePending = true;
+      requestAnimationFrame(() => {
+        Plotly.react("chartHR", [{
+          x: xDataHR,
+          y: yDataHR,
+          mode: "lines",
+          line: { color: "#ff3333", width: 2, shape: 'spline' }
+        }], {
+          ...darkLayout,
+          title: "Grafik Denyut Jantung (PPG)",
+          yaxis: { autorange: true }, // Mengikuti ayunan gelombang asli agar tidak datar
+          xaxis: { range: [xDataHR[0], xDataHR[maxPoints - 1]] }
+        });
+        isChartUpdatePending = false;
+      });
+    }
+
+    // 4. Parsing Tensi Live & Tensi Hasil Akhir
     if (data.mmHgLive !== undefined) {
       liveMmHg = Number(data.mmHgLive);
     }
@@ -261,28 +254,27 @@ client.on("message", (topic, msg) => {
     if (systolic > 0 && diastolic > 0) { 
       currentData.sys = systolic; 
       currentData.dia = diastolic; 
-      simpanKeRiwayatLog(); // Otomatis simpan log begitu tensi selesai dihitung
+      simpanKeRiwayatLog();
     }
 
     // ================= UPDATE TEXT UI & GAUGES =================
     if (document.getElementById("temp")) {
+      // Update Nilai di Card UI (Jika Lepas Jari, Otomatis Tampil 0)
       document.getElementById("temp").innerHTML = (currentData.temp > 0 ? currentData.temp.toFixed(1) : "0.0") + "°C";
       document.getElementById("spo2").innerHTML = (currentData.spo2 > 0 ? currentData.spo2 : "0") + "%";
-      document.getElementById("hr").innerHTML = (currentData.hr > 0 ? currentData.hr : "0") + " bpm";
-      document.getElementById("bp").innerHTML = currentData.sys + "/" + currentData.dia + " mmHg";
+      document.getElementById("hr").innerHTML   = (currentData.hr > 0 ? currentData.hr : "0") + " bpm";
+      document.getElementById("bp").innerHTML   = currentData.sys + "/" + currentData.dia + " mmHg";
 
-      // Update Grafik Tren Garis (SpO2, Temp, Tensi)
-      if (rawWave !== null) {
-        Plotly.extendTraces("chartSpo2", { x: [[xIndex]], y: [[currentData.spo2]] }, [0]);
-        Plotly.extendTraces("chartTemp", { x: [[xIndex]], y: [[currentData.temp]] }, [0]);
-        Plotly.extendTraces("chartTensi", { x: [[xIndex]], y: [[liveMmHg]] }, [0]); 
+      // Update Grafik Tren Garis Pasien
+      Plotly.extendTraces("chartSpo2", { x: [[xIndex]], y: [[currentData.spo2]] }, [0]);
+      Plotly.extendTraces("chartTemp", { x: [[xIndex]], y: [[currentData.temp]] }, [0]);
+      Plotly.extendTraces("chartTensi", { x: [[xIndex]], y: [[liveMmHg]] }, [0]); 
 
-        ["chartSpo2", "chartTemp", "chartTensi"].forEach(id => {
-          Plotly.relayout(id, { "xaxis.range": [Math.max(0, xIndex - 40), xIndex] });
-        });
-      }
+      ["chartSpo2", "chartTemp", "chartTensi"].forEach(id => {
+        Plotly.relayout(id, { "xaxis.range": [Math.max(0, xIndex - 40), xIndex] });
+      });
 
-      // Update Gauges
+      // Update Gauges (Juga kembali ke 0 saat lepas jari)
       let hrColor = (currentData.hr > 100 || (currentData.hr < 60 && currentData.hr > 0)) ? "red" : "lime";
       drawGauge("gaugeHR", currentData.hr, hrColor, 150, "bpm");
       drawGauge("gaugeSpo2", currentData.spo2, "lime", 100, "%");
@@ -314,9 +306,9 @@ function evaluasiKondisiKlinis() {
   if (!statusEl || !adviceBox) return;
 
   if (currentData.temp === 0 && currentData.spo2 === 0 && currentData.hr === 0) {
-    statusEl.innerHTML = "MENUNGGU DATA...";
+    statusEl.innerHTML = "MENUNGGU DATA / JARI LEPAS";
     statusEl.style.color = "orange";
-    adviceBox.innerHTML = "Sistem siap menerima data. Silakan tempatkan sensor pada pasien.";
+    adviceBox.innerHTML = "Sensor siap. Silakan posisikan jari pasien pada sensor.";
     return;
   }
 
