@@ -6,9 +6,6 @@ const topicReadings = "sensorReadings";
 let currentData = { temp: 0, spo2: 0, hr: 0, sys: 0, dia: 0 };
 let ecgPhase = 0;
 
-// Timer Timeout jika alat berhenti mengirim MQTT (misal: keluar menu alat)
-let mqttTimeoutTimer = null;
-
 // Config Buffer Grafik (Fixed Array 30 Point)
 const MAX_POINTS = 30;
 let xBuffer = Array.from({ length: MAX_POINTS }, (_, i) => i);
@@ -157,7 +154,6 @@ const chartLayoutBase = {
   xaxis: { visible: false, fixedrange: true }
 };
 
-// Batas Y-Axis Statis Khusus ECG/HR agar tidak melompat saat nilainya 0
 const layoutHR = {
   ...chartLayoutBase,
   title: "ECG / BPM",
@@ -209,7 +205,7 @@ function initGauge(id, unit, max) {
   }], { paper_bgcolor: "black", font: { color: "white" }, height: 160, margin: { t: 20, b: 10, l: 10, r: 10 } }, { responsive: true });
 }
 
-// FUNGSI UPDATE GRAFIK PAKSA RENDER ULANG
+// FUNGSI UPDATE GRAFIK FAST RENDER
 function renderChartsFast() {
   if (!document.getElementById("chartHR")) return;
 
@@ -227,9 +223,8 @@ function updateGaugeFast(id, val, color) {
 
 // FUNGSI MEMBUAT PULSA DENYUT JANTUNG NYATA (DENGAN PROTEKSI FLATLINE)
 function generateEcgPoint(bpm) {
-  // PENGAMAN 1: Jika BPM bernilai 0 atau tidak valid, paksa kembalikan 0 total!
   if (!bpm || Number(bpm) <= 0) {
-    ecgPhase = 0; // Reset fase gelombang ke 0
+    ecgPhase = 0; 
     return 0;
   }
   
@@ -241,26 +236,34 @@ function generateEcgPoint(bpm) {
   return bpm * 0.8;
 }
 
-// ================= MQTT RECEIVER =================
+// ================= MQTT RECEIVER (DENGAN WATCHDOG LAG-CUTTER) =================
 client.on("connect", () => {
   console.log("MQTT Terhubung ✅");
   client.subscribe(topicReadings);
 });
 
+let lastMessageTime = Date.now();
+
+// Deteksi Otomatis Jeda Kirim: Jika > 800ms tidak ada data baru, paksa FLATLINE seketika!
+setInterval(() => {
+  let timeDiff = Date.now() - lastMessageTime;
+  if (timeDiff > 800) { 
+    if (currentData.hr !== 0 || currentData.spo2 !== 0) {
+      currentData.hr = 0;
+      currentData.spo2 = 0;
+      yHrBuffer.fill(0);
+      ySpo2Buffer.fill(0);
+      updateUI(0);
+      renderChartsFast();
+    }
+  }
+}, 200);
+
 client.on("message", (topic, msg) => {
   if (topic !== topicReadings) return;
 
-  // Reset Timeout Timer setiap kali ada data MQTT baru masuk
-  clearTimeout(mqttTimeoutTimer);
-  mqttTimeoutTimer = setTimeout(() => {
-    // Jalankan jika alat tidak mengirim data selama 3 detik (misal: keluar menu)
-    currentData.hr = 0;
-    currentData.spo2 = 0;
-    yHrBuffer.fill(0);
-    ySpo2Buffer.fill(0);
-    updateUI(0);
-    renderChartsFast();
-  }, 3000);
+  // Catat timestamp data MQTT masuk
+  lastMessageTime = Date.now();
 
   try {
     let data = JSON.parse(msg.toString());
@@ -279,7 +282,7 @@ client.on("message", (topic, msg) => {
       currentData.spo2 = (valSpo2 > 0 && valSpo2 <= 100) ? valSpo2 : 0;
     }
 
-    // 3. Parsing Heart Rate (Paksa ke 0 jika sensor lepas / data invalid)
+    // 3. Parsing Heart Rate (Paksa 0 jika data invalid)
     let rawHr = data.heartRate ?? data.heartrate ?? data.hr ?? data.bpm ?? data.BPM;
     if (rawHr !== undefined) {
       let valHr = Number(rawHr);
@@ -297,18 +300,17 @@ client.on("message", (topic, msg) => {
       simpanKeRiwayatLog();
     }
 
-    // ================= 5. UPDATE BUFFER GRAFIK (LOGIKA FLATLINE STRIKTIF) =================
-    // PENGAMAN 2: Cek apakah jari terpasang secara eksplisit
+    // ================= 5. UPDATE BUFFER GRAFIK =================
     let isFingerDetected = (currentData.hr > 0 && currentData.spo2 > 0);
 
     if (!isFingerDetected) {
-      // JARI LEPAS: Reset nilai ke 0 & paksa grafik DATAR TOTAL di 0
+      // LEPAS JARI: Seketika buat flatline
       currentData.hr = 0;
       currentData.spo2 = 0;
       yHrBuffer.fill(0);
       ySpo2Buffer.fill(0);
     } else {
-      // JARI TERPASANG: Dorong nilai denyut baru
+      // JARI TERPASANG: Dorong data denyut
       yHrBuffer.shift(); 
       yHrBuffer.push(generateEcgPoint(currentData.hr));
 
