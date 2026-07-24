@@ -249,7 +249,7 @@ client.on("message", (topic, msg) => {
   // Reset Timeout Timer setiap kali ada data MQTT baru masuk
   clearTimeout(mqttTimeoutTimer);
   mqttTimeoutTimer = setTimeout(() => {
-    // Jalankan jika alat tidak mengirim data selama 3 detik (misal: keluar menu)
+    // Jika alat berhenti kirim data >3 detik (keluar menu / sensor mati)
     currentData.hr = 0;
     currentData.spo2 = 0;
     yHrBuffer.fill(0);
@@ -293,22 +293,23 @@ client.on("message", (topic, msg) => {
       simpanKeRiwayatLog();
     }
 
-    // 5. Update Buffer Array Grafik (Flatline instan saat HR <= 0)
+    // ================= 5. UPDATE BUFFER GRAFIK =================
+    // Logika Flatline Instan: Jika Jari Lepas (HR / SpO2 <= 0)
     if (currentData.hr <= 0 || currentData.spo2 <= 0) {
       currentData.hr = 0;
-      yHrBuffer.fill(0); // Garis langsung mendatar di angka 0
+      currentData.spo2 = 0;
+      yHrBuffer.fill(0);   // Seluruh grafik HR seketika rata di angka 0
+      ySpo2Buffer.fill(0); // Seluruh grafik SpO2 seketika rata di angka 0
     } else {
+      // Ada jari terdeteksi: Update gelombang biasa
       yHrBuffer.shift(); 
       yHrBuffer.push(generateEcgPoint(currentData.hr));
-    }
 
-    if (currentData.spo2 <= 0) {
-      ySpo2Buffer.fill(0);
-    } else {
       ySpo2Buffer.shift(); 
       ySpo2Buffer.push(currentData.spo2);
     }
 
+    // Buffer Suhu & Tensi
     yTempBuffer.shift(); 
     yTempBuffer.push(currentData.temp);
 
