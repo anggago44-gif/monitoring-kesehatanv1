@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#050b2e">
     <title>Dashboard Monitoring Kesehatan</title>
-    <link rel="stylesheet" href="style.css?v=317">
+    <link rel="stylesheet" href="style.css?v=318">
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 </head>
@@ -92,23 +92,13 @@
         <span id="status">MENUNGGU DATA...</span>
     </section>
 
-    <!-- TOMBOL RESET UTAMA & KONTROL ALAT ESP32 -->
+    <!-- TOMBOL RESET UTAMA -->
     <section class="info-panel" style="margin-top: 20px; text-align: center;">
-        <h3>🎛️ Perintah / Kontrol Alat & Reset</h3>
-        
-        <!-- Tombol Reset Semua Data Real-time -->
-        <div style="margin-bottom: 15px;">
-            <button class="btn-log" style="background: #e74c3c; color: white; border: none; padding: 12px 25px; font-size: 15px; font-weight: bold; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 10px rgba(231, 76, 60, 0.4);" onclick="resetSemuaParameter()">
+        <h3>🎛️ Kontrol Reset Dashboard</h3>
+        <div>
+            <button class="btn-log" style="background: #e74c3c; color: white; border: none; padding: 14px 30px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);" onclick="resetSemuaParameter()">
                 🔄 RESET SEMUA DATA REAL-TIME (KE 0)
             </button>
-        </div>
-
-        <!-- Tombol Perintah Alur Alat Ke ESP32 -->
-        <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-            <button class="btn-log" style="background: #27ae60; color: white; border:none; padding: 10px 15px; border-radius: 5px; cursor: pointer;" onclick="sendCommand('ALUR_OXY')">🫁 Ukur Oksimeter</button>
-            <button class="btn-log" style="background: #2980b9; color: white; border:none; padding: 10px 15px; border-radius: 5px; cursor: pointer;" onclick="sendCommand('ALUR_SUHU')">🌡️ Ukur Suhu</button>
-            <button class="btn-log" style="background: #e67e22; color: white; border:none; padding: 10px 15px; border-radius: 5px; cursor: pointer;" onclick="sendCommand('ALUR_TENSI')">🩺 Ukur Tensi</button>
-            <button class="btn-log" style="background: #c0392b; color: white; border:none; padding: 10px 15px; border-radius: 5px; cursor: pointer;" onclick="sendCommand('STOP')">🛑 Stop Pump / Reset ESP</button>
         </div>
     </section>
 
@@ -135,14 +125,12 @@
                     </tr>
                 </thead>
                 <tbody id="log-table-body">
-                    <!-- Data riwayat akan diisi otomatis dari JavaScript -->
                 </tbody>
             </table>
         </div>
     </section>
 </div>
 
-<!-- FILE JAVASCRIPT UTAMA -->
-<script src="index.js?v=317"></script>
+<script src="index.js?v=318"></script>
 </body>
 </html>
