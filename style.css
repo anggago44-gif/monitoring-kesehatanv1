@@ -1,30 +1,30 @@
 /* =====================
    RESET & GLOBAL STYLING
 ===================== */
-*{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-html,body{
-  width:100%;
-  overflow-x:hidden;
+html, body {
+  width: 100%;
+  overflow-x: hidden;
 }
 
-body{
-  background:#050b2e;
-  color:white;
-  font-family:Arial,sans-serif;
+body {
+  background: #050b2e;
+  color: white;
+  font-family: Arial, sans-serif;
 }
 
-.container{
-  width:100%;
-  padding:12px;
+.container {
+  width: 100%;
+  padding: 12px;
 }
 
 /* =====================
-   MENU NAVBAR TOP NAVIGATION
+   MENU NAVBAR
 ===================== */
 .navbar {
   display: flex;
@@ -59,75 +59,72 @@ body{
   box-shadow: 0 0 10px rgba(41, 128, 185, 0.5);
 }
 
-h1{
-  text-align:center;
-  font-size:24px;
-  margin-bottom:15px;
-  letter-spacing:1px;
+h1 {
+  text-align: center;
+  font-size: 24px;
+  margin-bottom: 15px;
+  letter-spacing: 1px;
 }
 
 /* =====================
-   CARD SENSOR ATAS
+   CARDS SENSOR ATAS
 ===================== */
-.cards{
-  display:flex;
-  flex-direction:column;
-  gap:12px;
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.card{
-  width:100%;
-  background:#0b0f4a;
-  border-radius:16px;
-  padding:16px;
-  text-align:center;
+.card {
+  width: 100%;
+  background: #0b0f4a;
+  border-radius: 16px;
+  padding: 16px;
+  text-align: center;
   box-shadow: 0 0 15px rgba(0,255,255,.08);
+  border: 1px solid #141b66;
 }
 
-.card h2{
-  margin-top:8px;
-  font-size:22px;
+.card h2 {
+  margin-top: 8px;
+  font-size: 24px;
+  color: #00ffff;
 }
 
 /* =====================
-   GRID UTAMA
+   GRID UTAMA & GRAFIK
 ===================== */
-.grid{
-  display:flex;
-  flex-direction:column;
-  gap:15px;
-  margin-top:15px;
+.grid {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 15px;
 }
 
-.charts{
-  display:flex;
-  flex-direction:column;
-  gap:15px;
+.charts, .gauges {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
 }
 
-.gauges{
-  display:flex;
-  flex-direction:column;
-  gap:15px;
-}
-
-.chart-box{
-  width:100%;
-  background:black;
-  border-radius:16px;
-  padding:12px;
-  overflow:hidden;
+.chart-box {
+  width: 100%;
+  background: black;
+  border-radius: 16px;
+  padding: 12px;
+  overflow: hidden;
   box-shadow: 0 0 10px rgba(0,255,255,.08);
+  border: 1px solid #141b66;
 }
 
-#chartTemp, #chartSpo2, #chartHR, #chartTensi, 
-#gauge1, #gauge2, #gauge3, #gauge4 {
-   width:100%!important;
+#chartHR, #chartSpo2, #chartTemp, #chartTensi, 
+#gaugeHR, #gaugeSpo2, #gaugeTemp, #gaugeBP {
+  width: 100%!important;
 }
 
-#chartTemp, #chartSpo2, #chartHR { height:260px; }
-#gauge1, #gauge2, #gauge3, #gauge4 { height:200px; }
-#chartTensi { height:220px; }
+#chartHR, #chartSpo2, #chartTemp { height: 260px; }
+#gaugeHR, #gaugeSpo2, #gaugeTemp, #gaugeBP { height: 200px; }
+#chartTensi { height: 220px; }
 
 /* =====================
    PROFIL & REKOMENDASI PANEL
@@ -144,6 +141,7 @@ h1{
   border-radius: 16px;
   padding: 18px;
   box-shadow: 0 0 15px rgba(0,255,255,.05);
+  border: 1px solid #141b66;
 }
 
 .info-panel h3 {
@@ -178,87 +176,18 @@ h1{
 }
 
 /* =====================
-   WORKFLOW INTERFACE
-===================== */
-.workflow-box {
-  background: #0b0f4a;
-  border-radius: 16px;
-  padding: 20px;
-  margin-top: 20px;
-  box-shadow: 0 0 15px rgba(0,255,255,.05);
-}
-
-.workflow-box h3 {
-  font-size: 16px;
-  margin-bottom: 15px;
-  color: #2ecc71;
-  text-align: center;
-}
-
-.steps-indicator {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
-.step {
-  padding: 12px;
-  background: #050b2e;
-  border-radius: 8px;
-  text-align: center;
-  border-left: 5px solid #333;
-  color: #666;
-  transition: 0.3s;
-}
-
-.step.active {
-  border-left-color: #2ecc71;
-  background: #112255;
-  color: white;
-  font-weight: bold;
-}
-
-.step.done {
-  border-left-color: #00ffff;
-  color: #aaa;
-  background: #070e38;
-}
-
-.workflow-controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.btn {
-  flex: 1;
-  min-width: 140px;
-  padding: 12px;
-  font-weight: bold;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  color: white;
-}
-
-.btn-primary { background: #27ae60; }
-.btn-secondary { background: #2980b9; }
-.btn-stop { background: #c0392b; }
-.btn:disabled { background: #1a1f4d !important; color: #555 !important; cursor: not-allowed; }
-
-/* =====================
    STATUS FOOTER INDIKATOR
 ===================== */
 .status-footer {
   margin-top: 20px;
   background: #0b0f4a;
-  padding: 15px;
+  padding: 18px;
   border-radius: 16px;
   text-align: center;
   font-size: 22px;
   font-weight: bold;
   box-shadow: 0 0 15px rgba(0,255,255,.05);
+  border: 1px solid #141b66;
 }
 
 /* =====================
@@ -270,6 +199,7 @@ h1{
   padding: 20px;
   margin-top: 25px;
   box-shadow: 0 0 15px rgba(0,255,255,.05);
+  border: 1px solid #141b66;
 }
 
 .log-header {
@@ -307,29 +237,27 @@ h1{
    RESPONSIVE MEDIA QUERIES
 ===================== */
 @media(min-width:768px){
-  .container { padding:18px; }
-  .cards { display:grid; grid-template-columns: repeat(2,1fr); gap:15px; }
-  .gauges { display:grid; grid-template-columns: repeat(2,1fr); gap:15px; }
+  .container { padding: 18px; }
+  .cards { display: grid; grid-template-columns: repeat(2,1fr); gap: 15px; }
+  .gauges { display: grid; grid-template-columns: repeat(2,1fr); gap: 15px; }
   .info-layout { flex-direction: row; }
   .info-panel { flex: 1; }
   .profile-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
-  .steps-indicator { flex-direction: row; }
-  .step { flex: 1; }
-  h1 { font-size:28px; }
+  h1 { font-size: 28px; }
   .log-header { flex-direction: row; }
 }
 
 @media(min-width:1200px){
-  .container{ max-width:1600px; margin:auto; padding:20px; }
-  h1 { font-size:34px; }
+  .container{ max-width: 1600px; margin: auto; padding: 20px; }
+  h1 { font-size: 34px; }
   .cards { grid-template-columns: repeat(4,1fr); }
-  .grid { display:grid; grid-template-columns: 2.5fr 1fr; gap:20px; }
-  #chartTemp, #chartSpo2, #chartHR { height: 360px; }
-  #gauge1, #gauge2, #gauge3, #gauge4 { height: 260px; }
+  .grid { display: grid; grid-template-columns: 2.5fr 1fr; gap: 20px; }
+  #chartHR, #chartSpo2, #chartTemp { height: 360px; }
+  #gaugeHR, #gaugeSpo2, #gaugeTemp, #gaugeBP { height: 260px; }
   #chartTensi { height: 260px; }
 }
 
 @media(min-width:1600px){
-  .container { max-width:1800px; }
-  #chartTemp, #chartSpo2, #chartHR { height: 400px; }
+  .container { max-width: 1800px; }
+  #chartHR, #chartSpo2, #chartTemp { height: 400px; }
 }
