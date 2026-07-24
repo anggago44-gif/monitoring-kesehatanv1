@@ -6,17 +6,20 @@ let ecgPhase = 0; // Untuk simulasi gelombang ECG/Denyut Jantung
 const topicReadings = "sensorReadings";
 let currentData = { temp: 0, spo2: 0, hr: 0, sys: 0, dia: 0 };
 
+// Flag untuk mendeteksi apakah Gauge sudah di-init awal
+let gaugeInitialized = false;
+
 // ================= LOGIKA MEMUAT PROFIL AKTIF =================
 function muatProfilPasienLama() {
   let profilTersimpan = localStorage.getItem("profilPasienAktif");
   
   if (profilTersimpan) {
     let profil = JSON.parse(profilTersimpan);
-    document.getElementById("p-rm").innerText = profil.rm;
-    document.getElementById("p-name").innerText = profil.nama;
+    document.getElementById("p-rm").innerText = profil.rm || "RM-2026-001";
+    document.getElementById("p-name").innerText = profil.nama || "-";
     document.getElementById("p-ttl").innerText = (profil.tempat || "-") + ", " + (profil.tanggalStr || "-");
-    document.getElementById("p-age").innerText = profil.usia;
-    document.getElementById("p-gender").innerText = profil.gender;
+    document.getElementById("p-age").innerText = profil.usia || "-";
+    document.getElementById("p-gender").innerText = profil.gender || "-";
     document.getElementById("p-alamat").innerText = profil.alamat || "-";
   } else {
     document.getElementById("p-rm").innerText = "RM-2026-001";
@@ -48,7 +51,7 @@ function simpanKeRiwayatLog() {
     gender: genderPasien,
     usia: usiaPasien,
     alamat: alamatPasien,
-    suhu: currentData.temp.toFixed(1) + " °C",
+    suhu: (currentData.temp > 0 ? currentData.temp.toFixed(1) : "0.0") + " °C",
     spo2: currentData.spo2 + " %",
     hr: currentData.hr + " bpm",
     tensi: currentData.sys + "/" + currentData.dia + " mmHg"
@@ -57,6 +60,9 @@ function simpanKeRiwayatLog() {
   let riwayatLama = localStorage.getItem("riwayatMedisPasien");
   let arrayRiwayat = riwayatLama ? JSON.parse(riwayatLama) : [];
   arrayRiwayat.unshift(dataBaru);
+
+  // Simpan maksimal 100 riwayat agar localStorage tidak overload
+  if (arrayRiwayat.length > 100) arrayRiwayat.pop();
 
   localStorage.setItem("riwayatMedisPasien", JSON.stringify(arrayRiwayat));
   tampilkanTabelRiwayat();
@@ -117,7 +123,44 @@ function downloadCSV() {
   document.body.removeChild(link);
 }
 
-// ================= PLOTLY LAYOUT CONFIG =================
+// ================= FUNGSI RESET DATA =================
+function resetSemuaData() {
+  if (confirm("Apakah Anda yakin ingin mereset data riwayat dan grafik real-time?")) {
+    // 1. Reset Variabel Internal
+    currentData = { temp: 0, spo2: 0, hr: 0, sys: 0, dia: 0 };
+    x = 0;
+
+    // 2. Clear LocalStorage Riwayat
+    localStorage.removeItem("riwayatMedisPasien");
+    tampilkanTabelRiwayat();
+
+    // 3. Reset Tampilan UI Text
+    if (document.getElementById("temp")) {
+      document.getElementById("temp").innerHTML = "0.0°C";
+      document.getElementById("spo2").innerHTML = "0%";
+      document.getElementById("hr").innerHTML = "0 bpm";
+      document.getElementById("bp").innerHTML = "0/0 mmHg";
+    }
+
+    // 4. Purge / Clear Grafik Line
+    ["chartHR", "chartSpo2", "chartTemp", "chartTensi"].forEach(id => {
+      if (document.getElementById(id)) {
+        Plotly.react(id, [{ x: [], y: [], mode: "lines", line: { width: 3 } }], darkLayout);
+      }
+    });
+
+    // 5. Reset Gauges ke 0
+    updateGauge("gaugeHR", 0, "lime");
+    updateGauge("gaugeSpo2", 0, "lime");
+    updateGauge("gaugeTemp", 0, "cyan");
+    updateGauge("gaugeBP", 0, "orange");
+
+    evaluasiKondisiKlinis();
+    alert("Data berhasil direset!");
+  }
+}
+
+// ================= PLOTLY LAYOUT & OPTIMIZED GAUGE =================
 const darkLayout = {
   paper_bgcolor: "black",
   plot_bgcolor: "black",
@@ -126,22 +169,33 @@ const darkLayout = {
   margin: { l: 50, r: 20, t: 40, b: 35 }
 };
 
-if (document.getElementById("chartHR")) {
+function initChartsAndGauges() {
+  if (!document.getElementById("chartHR")) return;
+
+  // Inisialisasi Chart Line
   Plotly.newPlot("chartHR", [{ x: [], y: [], mode: "lines", line: { color: "#ff3333", width: 2.5 } }], { ...darkLayout, title: "Grafik Gelombang Denyut Jantung (ECG / BPM)" });
   Plotly.newPlot("chartSpo2", [{ x: [], y: [], mode: "lines", line: { color: "lime", width: 3 } }], { ...darkLayout, title: "Tren SpO₂ (%)" });
   Plotly.newPlot("chartTemp", [{ x: [], y: [], mode: "lines", line: { color: "cyan", width: 3 } }], { ...darkLayout, title: "Tren Suhu Tubuh (°C)" });
   Plotly.newPlot("chartTensi", [{ x: [], y: [], mode: "lines", line: { color: "orange", width: 3 } }], { ...darkLayout, title: "Grafik Tekanan Manset Real-time (mmHg)" });
+
+  // Inisialisasi Gauge Sekali di Awal (Mencegah Lag / Delay)
+  createInitialGauge("gaugeHR", 0, "lime", 150, "bpm");
+  createInitialGauge("gaugeSpo2", 0, "lime", 100, "%");
+  createInitialGauge("gaugeTemp", 0, "cyan", 50, "°C");
+  createInitialGauge("gaugeBP", 0, "orange", 200, "mmHg");
+
+  gaugeInitialized = true;
 }
 
-function drawGauge(id, value, color, max, unit) {
+function createInitialGauge(id, value, color, max, unit) {
   if (!document.getElementById(id)) return;
   Plotly.newPlot(id, [{
     type: "indicator",
     mode: "gauge+number",
     value: value,
-    number: { suffix: " " + unit, font: { size: 30, weight: "bold" } },
+    number: { suffix: " " + unit, font: { size: 28, weight: "bold" } },
     gauge: {
-      axis: { range: [0, max], tickfont: { size: 12, color: "white" } },
+      axis: { range: [0, max], tickfont: { size: 11, color: "white" } },
       bar: { color: color, thickness: 0.35 },
       bgcolor: "black",
       bordercolor: "#333",
@@ -155,22 +209,29 @@ function drawGauge(id, value, color, max, unit) {
   }], {
     paper_bgcolor: "black",
     font: { color: "white" },
-    height: 200,
-    margin: { t: 30, b: 20, l: 20, r: 20 }
+    height: 180,
+    margin: { t: 25, b: 15, l: 15, r: 15 }
   });
+}
+
+// UPDATE GAUGE DENGAN RESTYLE (SANGAT CEPAT, NO DELAY)
+function updateGauge(id, val, barColor) {
+  if (!document.getElementById(id) || !gaugeInitialized) return;
+  Plotly.restyle(id, {
+    value: val,
+    "gauge.bar.color": barColor
+  }, [0]);
 }
 
 // SIMULASI GELOMBANG DENYUT JANTUNG (ECG) BERDASARKAN NILAI BPM
 function getEcgYValue(bpm) {
   if (bpm <= 0) return 0;
-  
-  // Menghasilkan kontur gelombang P-QRS-T sederhana berdasarkan titik fasa
   ecgPhase = (ecgPhase + 1) % 10;
-  if (ecgPhase === 2) return bpm + (bpm * 0.15);  // Gelombang P
-  if (ecgPhase === 4) return bpm - (bpm * 0.25);  // Q dip
-  if (ecgPhase === 5) return bpm + (bpm * 0.85);  // R Spike (Puncak Tinggi)
-  if (ecgPhase === 6) return bpm - (bpm * 0.40);  // S dip
-  if (ecgPhase === 8) return bpm + (bpm * 0.25);  // Gelombang T
+  if (ecgPhase === 2) return bpm + (bpm * 0.15);  // P Wave
+  if (ecgPhase === 4) return bpm - (bpm * 0.25);  // Q Dip
+  if (ecgPhase === 5) return bpm + (bpm * 0.85);  // R Spike
+  if (ecgPhase === 6) return bpm - (bpm * 0.40);  // S Dip
+  if (ecgPhase === 8) return bpm + (bpm * 0.25);  // T Wave
   return bpm; // Baseline
 }
 
@@ -185,35 +246,35 @@ client.on("message", (topic, msg) => {
 
   try {
     let data = JSON.parse(msg.toString());
-    
-    // 1. Parsing Suhu Tubuh (Mencegah nilai default 22°C atau -127°C)
-    let rawTemp = data.temperature !== undefined ? Number(data.temperature) : (data.temp !== undefined ? Number(data.temp) : 0);
-    if (rawTemp > 25 && rawTemp !== 127 && rawTemp !== -127) {
-      currentData.temp = rawTemp;
-    } else if (rawTemp === 0) {
-      currentData.temp = 0;
+
+    // ----------------------------------------------------
+    // 1. FIX SUHU HILANG-HILANG: HANYA UPDATE JIKA DATA ADA
+    // ----------------------------------------------------
+    let rawTemp = data.temperature !== undefined ? Number(data.temperature) : (data.temp !== undefined ? Number(data.temp) : null);
+    if (rawTemp !== null && rawTemp > 25 && rawTemp !== 127 && rawTemp !== -127) {
+      currentData.temp = rawTemp; // Update jika suhu valid
     }
 
     // 2. Parsing Saturasi Oksigen SpO2
-    let rawSpo2 = data.spo2 !== undefined ? Number(data.spo2) : 0;
-    currentData.spo2 = rawSpo2 > 0 ? rawSpo2 : currentData.spo2;
+    if (data.spo2 !== undefined && Number(data.spo2) > 0) {
+      currentData.spo2 = Number(data.spo2);
+    }
 
     // 3. Parsing Heart Rate (BPM)
-    let rawHr = 0;
-    if (data.heartRate !== undefined) rawHr = Number(data.heartRate);
-    else if (data.heartrate !== undefined) rawHr = Number(data.heartrate);
-    else if (data.hr !== undefined) rawHr = Number(data.hr);
-    if (rawHr > 0) currentData.hr = rawHr;
+    let rawHr = data.heartRate || data.heartrate || data.hr;
+    if (rawHr !== undefined && Number(rawHr) > 0) {
+      currentData.hr = Number(rawHr);
+    }
 
     // 4. Parsing Tensi Meter
-    let mmHgLive = Number(data.mmHgLive || 0); 
-    let systolic = Number(data.systolic || 0);  
-    let diastolic = Number(data.diastolic || 0); 
+    let mmHgLive = data.mmHgLive !== undefined ? Number(data.mmHgLive) : 0; 
+    let systolic = data.systolic !== undefined ? Number(data.systolic) : 0;  
+    let diastolic = data.diastolic !== undefined ? Number(data.diastolic) : 0; 
 
-    if (systolic > 0) { 
+    if (systolic > 0 && diastolic > 0) { 
       currentData.sys = systolic; 
       currentData.dia = diastolic; 
-      simpanKeRiwayatLog(); // Auto-save saat periksa tensi selesai
+      simpanKeRiwayatLog(); // Simpan log saat pengukuran tensi selesai
     }
 
     // UPDATE DISPLAY UI
@@ -223,32 +284,33 @@ client.on("message", (topic, msg) => {
       document.getElementById("hr").innerHTML = currentData.hr + " bpm";
       document.getElementById("bp").innerHTML = currentData.sys + "/" + currentData.dia + " mmHg";
 
-      // Nilai Y khusus untuk grafik BPM berdenyut
+      // Extend Data Real-time ke Grafik Plotly
       let ecgY = getEcgYValue(currentData.hr);
-
-      // Push Data Real-time ke Grafik Plotly
       Plotly.extendTraces("chartHR", { x: [[x]], y: [[ecgY]] }, [0]);
       Plotly.extendTraces("chartSpo2", { x: [[x]], y: [[currentData.spo2]] }, [0]);
       Plotly.extendTraces("chartTemp", { x: [[x]], y: [[currentData.temp]] }, [0]);
       Plotly.extendTraces("chartTensi", { x: [[x]], y: [[mmHgLive]] }, [0]); 
 
+      // Geser Sumbu X (Max 30 Data Point untuk Efisiensi Memori)
       ["chartHR", "chartSpo2", "chartTemp", "chartTensi"].forEach(id => {
         Plotly.relayout(id, { "xaxis.range": [Math.max(0, x - 30), x] });
       });
 
-      // Update Gauges
+      // Update Gauge secara ringan menggunakan restyle
       let hrColor = (currentData.hr > 100 || (currentData.hr < 60 && currentData.hr > 0)) ? "red" : "lime";
-      drawGauge("gaugeHR", currentData.hr, hrColor, 150, "bpm");
-      drawGauge("gaugeSpo2", currentData.spo2, "lime", 100, "%");
-      drawGauge("gaugeTemp", currentData.temp, "cyan", 50, "°C");
-      drawGauge("gaugeBP", mmHgLive, "orange", 200, "mmHg"); 
+      updateGauge("gaugeHR", currentData.hr, hrColor);
+      updateGauge("gaugeSpo2", currentData.spo2, "lime");
+      updateGauge("gaugeTemp", currentData.temp, "cyan");
+      updateGauge("gaugeBP", mmHgLive, "orange"); 
 
-      // EVALUASI KONDISI PASIEN (AMAN / BUTUH TINDAKAN MEDIS)
+      // EVALUASI KONDISI PASIEN
       evaluasiKondisiKlinis();
     }
     x++;
   } 
-  catch (e) { console.log("JSON TRANSLATION ERROR:", e); }
+  catch (e) { 
+    console.error("JSON PARSING / MQTT ERROR:", e); 
+  }
 });
 
 function evaluasiKondisiKlinis() {
@@ -266,9 +328,9 @@ function evaluasiKondisiKlinis() {
   let issues = [];
 
   // Ambang batas parameter medis
-  if (currentData.temp > 37.5) issues.push("Suhu tubuh tinggi (Demam)");
-  if (currentData.temp > 0 && currentData.temp < 35.0) issues.push("Suhu tubuh rendah (Hipotermia)");
-  if (currentData.spo2 > 0 && currentData.spo2 < 95) issues.push("Saturasi oksigen rendah (Hipoksia)");
+  if (currentData.temp > 37.5) issues.push("Suhu tinggi (Demam)");
+  if (currentData.temp > 0 && currentData.temp < 35.0) issues.push("Suhu rendah (Hipotermia)");
+  if (currentData.spo2 > 0 && currentData.spo2 < 95) issues.push("Saturasi O2 rendah (Hipoksia)");
   if (currentData.hr > 100) issues.push("Detak jantung cepat (Takikardia)");
   if (currentData.hr > 0 && currentData.hr < 50) issues.push("Detak jantung lambat (Bradikardia)");
   if (currentData.sys > 135) issues.push("Tekanan darah tinggi (Hipertensi)");
@@ -294,7 +356,8 @@ function resizeCharts() {
 window.addEventListener("load", () => {
   muatProfilPasienLama();
   tampilkanTabelRiwayat(); 
+  initChartsAndGauges();
   resizeCharts();
 });
+
 window.addEventListener("resize", resizeCharts);
-setTimeout(resizeCharts, 600);
