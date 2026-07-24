@@ -7,9 +7,12 @@ const topicControl  = "sensorControl";
 let currentData = { temp: 0, spo2: 0, hr: 0, sys: 0, dia: 0 };
 let liveMmHg = 0;
 
-// Sumbu X & Buffer Gelombang Real-time (Sama seperti pembacaan |||| di LCD)
+// Dynamic Filter Baseline untuk Grafik Denyut PPG
+let irFilterBaseline = 0;
+
+// Sumbu X & Buffer Gelombang Real-time (Khusus Grafik Denyut)
 let xIndex = 0;
-const maxPoints = 50; // Titik sinyal berjalan
+const maxPoints = 50; 
 let xDataHR = Array.from({ length: maxPoints }, (_, i) => i);
 let yDataHR = Array(maxPoints).fill(0);
 
@@ -131,7 +134,7 @@ function downloadCSV() {
   document.body.removeChild(link);
 }
 
-// ================= PLOTLY INITIALIZATION (NAMA JUDUL DIPERBAIKI) =================
+// ================= PLOTLY INITIALIZATION =================
 const darkLayout = {
   paper_bgcolor: "black",
   plot_bgcolor: "black",
@@ -144,14 +147,13 @@ if (document.getElementById("chartHR")) {
     x: xDataHR,
     y: yDataHR,
     mode: "lines",
-    line: { color: "#ff3333", width: 2, shape: 'spline' } // Shape spline untuk efek kurva halus
+    line: { color: "#ff3333", width: 2, shape: 'spline' }
   }], {
     ...darkLayout,
-    title: "Grafik Denyut Jantung (PPG)", // Judul diperpendek
+    title: "Grafik Denyut Jantung (PPG)",
     yaxis: { autorange: true }
   }, { responsive: true });
 
-  // Menghapus kata "Tren" dari judul grafik
   Plotly.newPlot("chartSpo2", [{ x: [], y: [], mode: "lines", line: { color: "lime", width: 2.5 } }], { ...darkLayout, title: "SpO₂ (%)" }, { responsive: true });
   Plotly.newPlot("chartTemp", [{ x: [], y: [], mode: "lines", line: { color: "cyan", width: 2.5 } }], { ...darkLayout, title: "Suhu Tubuh (°C)" }, { responsive: true });
   Plotly.newPlot("chartTensi", [{ x: [], y: [], mode: "lines", line: { color: "orange", width: 2.5 } }], { ...darkLayout, title: "Tekanan Manset (mmHg)" }, { responsive: true });
@@ -196,18 +198,17 @@ client.on("message", (topic, msg) => {
   try {
     let data = JSON.parse(msg.toString());
 
-    // 1. Parsing Nilai Sinyal Mentah (IR / RAW PPG)
+    // 1. Ambil nilai raw/IR/PPG dari ESP32
     let rawWave = data.raw !== undefined ? Number(data.raw) : (data.ir !== undefined ? Number(data.ir) : (data.ppg !== undefined ? Number(data.ppg) : 0));
 
     // 2. DETEKSI LEPAS JARI / RESET OTOMATIS KE 0
-    // Jika data.finger == false / rawWave == 0 / hr & spo2 bernilai 0 dari ESP32
-    if (data.finger === false || (rawWave === 0 && (data.spo2 === 0 || data.spo2 === undefined))) {
+    if (data.finger === false || rawWave < 20000 || (data.spo2 === 0 && data.heartRate === 0)) {
       currentData.temp = 0;
       currentData.spo2 = 0;
       currentData.hr   = 0;
       rawWave = 0;
+      irFilterBaseline = 0;
     } else {
-      // Jika Ada Jari Dipasang: Update Data
       if (data.temperature !== undefined) currentData.temp = Number(data.temperature);
       else if (data.temp !== undefined) currentData.temp = Number(data.temp);
 
@@ -217,14 +218,22 @@ client.on("message", (topic, msg) => {
       if (rawHr !== undefined) currentData.hr = Number(rawHr);
     }
 
-    // 3. UPDATE GRAFIK DENYUT PPG REAL-TIME (SAMA SEPERTI TAMPILAN DENYUT |||| DI LCD)
+    // 3. ESTRAKSI DENYUTAN KHUSUS GRAFIK DENYUT JANTUNG
+    let plotValue = 0;
+    if (rawWave > 0) {
+      if (irFilterBaseline === 0) irFilterBaseline = rawWave;
+      irFilterBaseline = (irFilterBaseline * 0.95) + (rawWave * 0.05);
+      plotValue = rawWave - irFilterBaseline;
+    }
+
     xIndex++;
     xDataHR.shift();
     xDataHR.push(xIndex);
     
     yDataHR.shift();
-    yDataHR.push(rawWave);
+    yDataHR.push(plotValue);
 
+    // Update Grafik Denyut Jantung PPG (Real-time Berdenyut)
     if (!isChartUpdatePending && document.getElementById("chartHR")) {
       isChartUpdatePending = true;
       requestAnimationFrame(() => {
@@ -236,7 +245,7 @@ client.on("message", (topic, msg) => {
         }], {
           ...darkLayout,
           title: "Grafik Denyut Jantung (PPG)",
-          yaxis: { autorange: true }, // Mengikuti ayunan gelombang asli agar tidak datar
+          yaxis: { autorange: true, zeroline: false },
           xaxis: { range: [xDataHR[0], xDataHR[maxPoints - 1]] }
         });
         isChartUpdatePending = false;
@@ -257,15 +266,15 @@ client.on("message", (topic, msg) => {
       simpanKeRiwayatLog();
     }
 
-    // ================= UPDATE TEXT UI & GAUGES =================
+    // 5. UPDATE GRAFIK TREN (KEMBALI KE SEMULA MENGGUNAKAN EXTENDTRACES)
     if (document.getElementById("temp")) {
-      // Update Nilai di Card UI (Jika Lepas Jari, Otomatis Tampil 0)
+      // Update Nilai di Card UI
       document.getElementById("temp").innerHTML = (currentData.temp > 0 ? currentData.temp.toFixed(1) : "0.0") + "°C";
       document.getElementById("spo2").innerHTML = (currentData.spo2 > 0 ? currentData.spo2 : "0") + "%";
       document.getElementById("hr").innerHTML   = (currentData.hr > 0 ? currentData.hr : "0") + " bpm";
       document.getElementById("bp").innerHTML   = currentData.sys + "/" + currentData.dia + " mmHg";
 
-      // Update Grafik Tren Garis Pasien
+      // Grafik SpO2, Suhu, dan Tensi Berjalan Seperti Semula
       Plotly.extendTraces("chartSpo2", { x: [[xIndex]], y: [[currentData.spo2]] }, [0]);
       Plotly.extendTraces("chartTemp", { x: [[xIndex]], y: [[currentData.temp]] }, [0]);
       Plotly.extendTraces("chartTensi", { x: [[xIndex]], y: [[liveMmHg]] }, [0]); 
@@ -274,7 +283,7 @@ client.on("message", (topic, msg) => {
         Plotly.relayout(id, { "xaxis.range": [Math.max(0, xIndex - 40), xIndex] });
       });
 
-      // Update Gauges (Juga kembali ke 0 saat lepas jari)
+      // Update Gauges
       let hrColor = (currentData.hr > 100 || (currentData.hr < 60 && currentData.hr > 0)) ? "red" : "lime";
       drawGauge("gaugeHR", currentData.hr, hrColor, 150, "bpm");
       drawGauge("gaugeSpo2", currentData.spo2, "lime", 100, "%");
