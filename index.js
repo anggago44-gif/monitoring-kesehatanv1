@@ -5,12 +5,9 @@ const topicReadings = "sensorReadings";
 let currentData = { temp: 0, spo2: 0, hr: 0, sys: 0, dia: 0 };
 let liveMmHg = 0;
 
-// Counter sumbu X dan Fasa Gelombang
+// Counter sumbu X dan Buffer Data Sumbu Y
 let xIndex = 0;
-let ecgPhase = 0;
-
-// Buffer Data Sumbu X dan Y untuk Plotly
-const maxPoints = 50; // Jumlah titik garis yang tampil di layar
+const maxPoints = 60; // Jumlah titik sinyal yang tampil di layar
 let xDataHR = Array.from({length: maxPoints}, (_, i) => i);
 let yDataHR = Array(maxPoints).fill(0);
 
@@ -36,7 +33,7 @@ function muatProfilPasienLama() {
   }
 }
 
-// ================= LOGIKA RIWAYAT TABEL LOG & EXCEL =================
+// ================= LOGIKA TABEL LOG & EXCEL =================
 function simpanKeRiwayatLog() {
   let rmPasien = document.getElementById("p-rm").innerText;
   let namaPasien = document.getElementById("p-name").innerText;
@@ -134,7 +131,6 @@ const darkLayout = {
 };
 
 if (document.getElementById("chartHR")) {
-  // Setup grafik BPM dengan Sumbu Y terkunci agar lonjakan puncaknya terlihat jelas
   Plotly.newPlot("chartHR", [{
     x: xDataHR,
     y: yDataHR,
@@ -142,8 +138,8 @@ if (document.getElementById("chartHR")) {
     line: { color: "#ff3333", width: 2 }
   }], {
     ...darkLayout,
-    title: "Grafik Gelombang Denyut Jantung (ECG / BPM)",
-    yaxis: { range: [-20, 160], autorange: false }
+    title: "Grafik Sinyal Denyut Jantung Real-time (PPG Wave)",
+    yaxis: { autorange: true } // Autoscale mengikuti dinamika sinyal mentah sensor
   });
 
   Plotly.newPlot("chartSpo2", [{ x: [], y: [], mode: "lines", line: { color: "lime", width: 2.5 } }], { ...darkLayout, title: "Tren SpO₂ (%)" });
@@ -178,53 +174,6 @@ function drawGauge(id, value, color, max, unit) {
   });
 }
 
-// ================= GENERATOR GELOMBANG DENYUT JANTUNG (P-QRS-T) =================
-function hitungNilaiDenyutEcg(bpm) {
-  if (bpm <= 0) return 0; // Garis datar jika tidak ada denyut
-
-  ecgPhase = (ecgPhase + 1) % 10;
-  
-  // Pola Bentuk Denyut ECG Rumah Sakit berdasarkan fase
-  switch(ecgPhase) {
-    case 1: return bpm * 0.15;            // Gelombang P kecil
-    case 3: return -bpm * 0.20;           // Defleksi Q
-    case 4: return bpm * 1.40;            // Puncak R-Spike (Denyut Paling Tinggi)
-    case 5: return -bpm * 0.35;           // Lembah S
-    case 7: return bpm * 0.25;            // Gelombang T
-    default: return (Math.random() * 2);  // Noise baseline alami
-  }
-}
-
-// ================= LOOP ANIMASI DILAKUKAN SETIAP 100 MS =================
-setInterval(() => {
-  if (!document.getElementById("chartHR")) return;
-
-  xIndex++;
-  let bpmVal = currentData.hr;
-  let ecgY = hitungNilaiDenyutEcg(bpmVal);
-
-  // Geser array data ke kiri (efek mengalir berdenyut)
-  xDataHR.shift();
-  xDataHR.push(xIndex);
-  
-  yDataHR.shift();
-  yDataHR.push(ecgY);
-
-  // Update grafik BPM
-  Plotly.react("chartHR", [{
-    x: xDataHR,
-    y: yDataHR,
-    mode: "lines",
-    line: { color: "#ff3333", width: 2 }
-  }], {
-    ...darkLayout,
-    title: "Grafik Gelombang Denyut Jantung (ECG / BPM)",
-    yaxis: { range: [-30, Math.max(120, bpmVal * 1.6)], autorange: false },
-    xaxis: { range: [xDataHR[0], xDataHR[maxPoints - 1]] }
-  });
-
-}, 100); // 100 milidetik = 10 FPS gelombang mengalir dinamis
-
 // ================= MQTT RECEIVER =================
 client.on("connect", () => {
   console.log("MQTT CONNECTED SUCCESFULLY ✅");
@@ -256,7 +205,33 @@ client.on("message", (topic, msg) => {
     else if (data.hr !== undefined) rawHr = Number(data.hr);
     if (rawHr > 0) currentData.hr = rawHr;
 
-    // 4. Parsing Tensi
+    // 4. BANJIRKAN SINYAL MENTAH SENSOR KE GRAFIK DENYUT (RAW PPG / IR / SIGNAL)
+    // Menerima nilai mentah sensor (contoh variabel: data.raw, data.ir, atau data.ppg)
+    let rawWave = data.raw !== undefined ? Number(data.raw) : (data.ir !== undefined ? Number(data.ir) : (data.ppg !== undefined ? Number(data.ppg) : 0));
+
+    if (rawWave !== 0) {
+      xIndex++;
+      xDataHR.shift();
+      xDataHR.push(xIndex);
+      
+      yDataHR.shift();
+      yDataHR.push(rawWave);
+
+      // Plot langsung setiap kali paket sinyal dari jari pasien masuk
+      Plotly.react("chartHR", [{
+        x: xDataHR,
+        y: yDataHR,
+        mode: "lines",
+        line: { color: "#ff3333", width: 2 }
+      }], {
+        ...darkLayout,
+        title: "Grafik Sinyal Denyut Jantung Real-time (PPG Wave)",
+        yaxis: { autorange: true },
+        xaxis: { range: [xDataHR[0], xDataHR[maxPoints - 1]] }
+      });
+    }
+
+    // 5. Parsing Tensi
     liveMmHg = Number(data.mmHgLive || 0); 
     let systolic = Number(data.systolic || 0);  
     let diastolic = Number(data.diastolic || 0); 
@@ -267,14 +242,14 @@ client.on("message", (topic, msg) => {
       simpanKeRiwayatLog();
     }
 
-    // Update Text UI
+    // Update Text UI & Gauge
     if (document.getElementById("temp")) {
       document.getElementById("temp").innerHTML = (currentData.temp > 0 ? currentData.temp.toFixed(1) : "0.0") + "°C";
       document.getElementById("spo2").innerHTML = currentData.spo2 + "%";
       document.getElementById("hr").innerHTML = currentData.hr + " bpm";
       document.getElementById("bp").innerHTML = currentData.sys + "/" + currentData.dia + " mmHg";
 
-      // Update Grafik Garis Lainnya (SpO2, Temp, Tensi)
+      // Update Grafik Garis Tren Lainnya (SpO2, Temp, Tensi)
       Plotly.extendTraces("chartSpo2", { x: [[xIndex]], y: [[currentData.spo2]] }, [0]);
       Plotly.extendTraces("chartTemp", { x: [[xIndex]], y: [[currentData.temp]] }, [0]);
       Plotly.extendTraces("chartTensi", { x: [[xIndex]], y: [[liveMmHg]] }, [0]); 
