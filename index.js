@@ -7,16 +7,20 @@ const topicControl  = "sensorControl";
 let currentData = { temp: 0, spo2: 0, hr: 0, sys: 0, dia: 0 };
 let liveMmHg = 0;
 
-// Dynamic Filter Baseline & Min-Max Tracker untuk Grafik Denyut PPG
+// Dynamic Filter Baseline untuk Grafik Denyut PPG
 let irFilterBaseline = 0;
 
-// Sumbu X & Buffer Gelombang Real-time (Khusus Grafik Denyut)
-let xIndex = 0;
-const maxPoints = 50; 
-let xDataHR = Array.from({ length: maxPoints }, (_, i) => i);
-let yDataHR = Array(maxPoints).fill(0);
+// Sumbu X UTUH & KAKU (Tetap dari 0 sampai 49, TIDAK BERGESER/BERJALAN)
+const MAX_POINTS = 50;
+const xDataStatic = Array.from({ length: MAX_POINTS }, (_, i) => i);
 
-let isChartUpdatePending = false;
+// Buffer Data Y (Nilai Sinyal)
+let yDataHR = Array(MAX_POINTS).fill(0);
+let yDataSpo2 = Array(MAX_POINTS).fill(0);
+let yDataTemp = Array(MAX_POINTS).fill(0);
+let yDataTensi = Array(MAX_POINTS).fill(0);
+
+let isRenderPending = false;
 
 // ================= FUNGSI RESET UTAMA =================
 function resetSemuaParameter() {
@@ -41,20 +45,14 @@ function resetSemuaParameter() {
     adviceBox.innerHTML = "Tampilan berhasil direset. Silakan posisikan sensor pada pasien untuk pemeriksaan baru.";
   }
 
-  // Reset Buffer Grafik Denyut
-  yDataHR = Array(maxPoints).fill(0);
-  if (document.getElementById("chartHR")) {
-    Plotly.react("chartHR", [{
-      x: xDataHR,
-      y: yDataHR,
-      mode: "lines",
-      line: { color: "#ff3333", width: 2, shape: 'spline' }
-    }], {
-      ...darkLayout,
-      title: "Grafik Denyut Jantung (PPG)",
-      yaxis: { autorange: true }
-    });
-  }
+  // Clear Buffer Y
+  yDataHR = Array(MAX_POINTS).fill(0);
+  yDataSpo2 = Array(MAX_POINTS).fill(0);
+  yDataTemp = Array(MAX_POINTS).fill(0);
+  yDataTensi = Array(MAX_POINTS).fill(0);
+
+  // Render Ulang Grafik Setelah Reset
+  renderAllCharts();
 
   // Reset Gauges ke 0
   drawGauge("gaugeHR", 0, "lime", 150, "bpm");
@@ -184,7 +182,7 @@ function downloadCSV() {
   document.body.removeChild(link);
 }
 
-// ================= PLOTLY INITIALIZATION =================
+// ================= INITIALIZATION PLOTLY GRAFIK & GAUGE =================
 const darkLayout = {
   paper_bgcolor: "black",
   plot_bgcolor: "black",
@@ -192,21 +190,22 @@ const darkLayout = {
   margin: { l: 40, r: 20, t: 35, b: 30 }
 };
 
-if (document.getElementById("chartHR")) {
-  Plotly.newPlot("chartHR", [{
-    x: xDataHR,
-    y: yDataHR,
-    mode: "lines",
-    line: { color: "#ff3333", width: 2, shape: 'spline' }
-  }], {
-    ...darkLayout,
-    title: "Grafik Denyut Jantung (PPG)",
-    yaxis: { autorange: true }
-  }, { responsive: true });
+// Sumbu X Kaku (Ter-lock)
+const xAxisFixed = {
+  range: [0, MAX_POINTS - 1],
+  fixedrange: true,
+  autorange: false,
+  showgrid: true,
+  gridcolor: "#222"
+};
 
-  Plotly.newPlot("chartSpo2", [{ x: [], y: [], mode: "lines", line: { color: "lime", width: 2.5 } }], { ...darkLayout, title: "SpO₂ (%)" }, { responsive: true });
-  Plotly.newPlot("chartTemp", [{ x: [], y: [], mode: "lines", line: { color: "cyan", width: 2.5 } }], { ...darkLayout, title: "Suhu Tubuh (°C)" }, { responsive: true });
-  Plotly.newPlot("chartTensi", [{ x: [], y: [], mode: "lines", line: { color: "orange", width: 2.5 } }], { ...darkLayout, title: "Tekanan Manset (mmHg)" }, { responsive: true });
+function initCharts() {
+  if (!document.getElementById("chartHR")) return;
+
+  Plotly.newPlot("chartHR", [{ x: xDataStatic, y: yDataHR, mode: "lines", line: { color: "#ff3333", width: 2.5, shape: 'spline' } }], { ...darkLayout, title: "Grafik Denyut Jantung (PPG)", xaxis: xAxisFixed }, { responsive: true });
+  Plotly.newPlot("chartSpo2", [{ x: xDataStatic, y: yDataSpo2, mode: "lines", line: { color: "lime", width: 2.5 } }], { ...darkLayout, title: "SpO₂ (%)", xaxis: xAxisFixed, yaxis: { range: [0, 105] } }, { responsive: true });
+  Plotly.newPlot("chartTemp", [{ x: xDataStatic, y: yDataTemp, mode: "lines", line: { color: "cyan", width: 2.5 } }], { ...darkLayout, title: "Suhu Tubuh (°C)", xaxis: xAxisFixed, yaxis: { range: [20, 50] } }, { responsive: true });
+  Plotly.newPlot("chartTensi", [{ x: xDataStatic, y: yDataTensi, mode: "lines", line: { color: "orange", width: 2.5 } }], { ...darkLayout, title: "Tekanan Manset (mmHg)", xaxis: xAxisFixed, yaxis: { range: [0, 220] } }, { responsive: true });
 }
 
 function drawGauge(id, value, color, max, unit) {
@@ -236,6 +235,55 @@ function drawGauge(id, value, color, max, unit) {
   }, { responsive: true });
 }
 
+// ================= RENDER GRAFIK DENGAN LATAR DIAM/DI-LOCK =================
+function renderAllCharts() {
+  if (!document.getElementById("chartHR")) return;
+
+  // 1. Render Denyut PPG (Rentang Y Menyesuaikan Gelombang Agar Tampak Berdetak)
+  let minHR = Math.min(...yDataHR);
+  let maxHR = Math.max(...yDataHR);
+  let padHR = (maxHR - minHR) * 0.2 || 10;
+
+  Plotly.react("chartHR", [{
+    x: xDataStatic, y: yDataHR, mode: "lines", line: { color: "#ff3333", width: 2.5, shape: 'spline' }
+  }], {
+    ...darkLayout,
+    title: "Grafik Denyut Jantung (PPG)",
+    xaxis: xAxisFixed,
+    yaxis: { range: [minHR - padHR, maxHR + padHR], zeroline: false }
+  });
+
+  // 2. Render SpO2 (Latar Kaku)
+  Plotly.react("chartSpo2", [{
+    x: xDataStatic, y: yDataSpo2, mode: "lines", line: { color: "lime", width: 2.5 }
+  }], {
+    ...darkLayout,
+    title: "SpO₂ (%)",
+    xaxis: xAxisFixed,
+    yaxis: { range: [0, 105] }
+  });
+
+  // 3. Render Suhu (Latar Kaku)
+  Plotly.react("chartTemp", [{
+    x: xDataStatic, y: yDataTemp, mode: "lines", line: { color: "cyan", width: 2.5 }
+  }], {
+    ...darkLayout,
+    title: "Suhu Tubuh (°C)",
+    xaxis: xAxisFixed,
+    yaxis: { range: [20, 50] }
+  });
+
+  // 4. Render Tekanan Manset (Latar Kaku)
+  Plotly.react("chartTensi", [{
+    x: xDataStatic, y: yDataTensi, mode: "lines", line: { color: "orange", width: 2.5 }
+  }], {
+    ...darkLayout,
+    title: "Tekanan Manset (mmHg)",
+    xaxis: xAxisFixed,
+    yaxis: { range: [0, 220] }
+  });
+}
+
 // ================= MQTT RECEIVER =================
 client.on("connect", () => {
   console.log("MQTT CONNECTED SUCCESFULLY ✅");
@@ -248,13 +296,13 @@ client.on("message", (topic, msg) => {
   try {
     let data = JSON.parse(msg.toString());
 
-    // 1. Ekstraksi Nilai Raw IR / PPG
+    // 1. Reading Raw Wave (PPG)
     let rawWave = 0;
     if (data.raw !== undefined) rawWave = Number(data.raw);
     else if (data.ir !== undefined) rawWave = Number(data.ir);
     else if (data.ppg !== undefined) rawWave = Number(data.ppg);
 
-    // 2. DETEKSI JARI LEPAS
+    // 2. DETEKSI JARI LEPAS / DATA KOSONG
     if (data.finger === false || rawWave < 10000 || (data.spo2 === 0 && (data.heartRate === 0 || data.hr === 0))) {
       currentData.temp = 0;
       currentData.spo2 = 0;
@@ -271,85 +319,65 @@ client.on("message", (topic, msg) => {
       if (rawHr !== undefined) currentData.hr = Number(rawHr);
     }
 
-    // 3. PENGOLAHAN GELOMBANG DENYUT PPG (AGAR TIDAK DATAR)
-    let plotValue = 0;
+    // 3. Filter Gelombang PPG (Denyut Berayun Tanpa Menggeser Latar)
+    let ppgPlotVal = 0;
     if (rawWave > 0) {
       if (irFilterBaseline === 0) irFilterBaseline = rawWave;
-      // Filter Rata-rata Berjalan Sederhana
       irFilterBaseline = (irFilterBaseline * 0.9) + (rawWave * 0.1);
-      plotValue = rawWave - irFilterBaseline;
+      ppgPlotVal = rawWave - irFilterBaseline;
     }
 
-    xIndex++;
-    xDataHR.shift();
-    xDataHR.push(xIndex);
-    
-    yDataHR.shift();
-    yDataHR.push(plotValue);
-
-    // Render ulang grafik PPG berdenyut
-    if (!isChartUpdatePending && document.getElementById("chartHR")) {
-      isChartUpdatePending = true;
-      requestAnimationFrame(() => {
-        // Hitung rentang min dan max data di buffer agar sumbu Y dinamis berayun
-        let minVal = Math.min(...yDataHR);
-        let maxVal = Math.max(...yDataHR);
-        let padding = (maxVal - minVal) * 0.2 || 10;
-
-        Plotly.react("chartHR", [{
-          x: xDataHR,
-          y: yDataHR,
-          mode: "lines",
-          line: { color: "#ff3333", width: 2.5, shape: 'spline' }
-        }], {
-          ...darkLayout,
-          title: "Grafik Denyut Jantung (PPG)",
-          yaxis: { range: [minVal - padding, maxVal + padding], zeroline: false },
-          xaxis: { range: [xDataHR[0], xDataHR[maxPoints - 1]] }
-        });
-        isChartUpdatePending = false;
-      });
-    }
-
-    // 4. Parsing Tensi
-    if (data.mmHgLive !== undefined) {
-      liveMmHg = Number(data.mmHgLive);
-    }
+    // 4. Reading Manset Tensi
+    if (data.mmHgLive !== undefined) liveMmHg = Number(data.mmHgLive);
+    else if (data.pressure !== undefined) liveMmHg = Number(data.pressure);
 
     let systolic = Number(data.systolic || 0); 
     let diastolic = Number(data.diastolic || 0); 
-
     if (systolic > 0 && diastolic > 0) { 
       currentData.sys = systolic; 
       currentData.dia = diastolic; 
       simpanKeRiwayatLog();
     }
 
-    // 5. UPDATE GRAFIK TREN DENGAN EXTENDTRACES (BERJALAN MULUS KE SAMPING)
+    // 5. UPDATE BUFFER HANYA UNTUK SUMBU Y (SUMBU X UTUH DARI 0-49)
+    yDataHR.shift();
+    yDataHR.push(ppgPlotVal);
+
+    yDataSpo2.shift();
+    yDataSpo2.push(currentData.spo2);
+
+    yDataTemp.shift();
+    yDataTemp.push(currentData.temp);
+
+    yDataTensi.shift();
+    yDataTensi.push(liveMmHg);
+
+    // 6. Update UI Tampilan Angka Card & Gauge
     if (document.getElementById("temp")) {
       document.getElementById("temp").innerHTML = (currentData.temp > 0 ? currentData.temp.toFixed(1) : "0.0") + "°C";
       document.getElementById("spo2").innerHTML = (currentData.spo2 > 0 ? currentData.spo2 : "0") + "%";
       document.getElementById("hr").innerHTML   = (currentData.hr > 0 ? currentData.hr : "0") + " bpm";
       document.getElementById("bp").innerHTML   = currentData.sys + "/" + currentData.dia + " mmHg";
 
-      Plotly.extendTraces("chartSpo2", { x: [[xIndex]], y: [[currentData.spo2]] }, [0]);
-      Plotly.extendTraces("chartTemp", { x: [[xIndex]], y: [[currentData.temp]] }, [0]);
-      Plotly.extendTraces("chartTensi", { x: [[xIndex]], y: [[liveMmHg]] }, [0]); 
-
-      ["chartSpo2", "chartTemp", "chartTensi"].forEach(id => {
-        Plotly.relayout(id, { "xaxis.range": [Math.max(0, xIndex - 40), xIndex] });
-      });
-
       let hrColor = (currentData.hr > 100 || (currentData.hr < 60 && currentData.hr > 0)) ? "red" : "lime";
       drawGauge("gaugeHR", currentData.hr, hrColor, 150, "bpm");
       drawGauge("gaugeSpo2", currentData.spo2, "lime", 100, "%");
       drawGauge("gaugeTemp", currentData.temp, "cyan", 50, "°C");
-      drawGauge("gaugeBP", liveMmHg, "orange", 200, "mmHg"); 
+      drawGauge("gaugeBP", liveMmHg, "orange", 200, "mmHg");
 
       evaluasiKondisiKlinis();
     }
-  } 
-  catch (e) { 
+
+    // 7. Render Grafik
+    if (!isRenderPending) {
+      isRenderPending = true;
+      requestAnimationFrame(() => {
+        renderAllCharts();
+        isRenderPending = false;
+      });
+    }
+
+  } catch (e) { 
     console.error("JSON PARSE ERROR:", e); 
   }
 });
@@ -407,6 +435,7 @@ function resizeCharts() {
 window.addEventListener("load", () => {
   muatProfilPasienLama();
   tampilkanTabelRiwayat(); 
+  initCharts();
   resizeCharts();
 });
 window.addEventListener("resize", resizeCharts);
