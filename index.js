@@ -6,7 +6,7 @@ const topicReadings = "sensorReadings";
 let currentData = { temp: 0, spo2: 0, hr: 0, sys: 0, dia: 0 };
 let ecgPhase = 0;
 
-// Config Buffer Grafik (Fixed Array 30 Point - Ringan & Tanpa Lag)
+// Config Buffer Grafik (Fixed Array 30 Point - Ultra Ringan & Bebas Lag)
 const MAX_POINTS = 30;
 let xBuffer = Array.from({ length: MAX_POINTS }, (_, i) => i);
 let yHrBuffer = Array(MAX_POINTS).fill(0);
@@ -14,16 +14,16 @@ let ySpo2Buffer = Array(MAX_POINTS).fill(0);
 let yTempBuffer = Array(MAX_POINTS).fill(0);
 let yTensiBuffer = Array(MAX_POINTS).fill(0);
 
-let isRendering = false; // Prevent CPU Lag / Bottleneck
+let isRendering = false; // Mencegah CPU Lag / Bottleneck Rendering
 
-// ================= FUNGSI RESET UTAMA (SANGAT AMPUH) =================
+// ================= FUNGSI RESET UTAMA =================
 function resetSemuaData() {
   console.log("Memulai proses reset data...");
 
   // 1. Reset Variabel Internal Data Pasien
   currentData = { temp: 0, spo2: 0, hr: 0, sys: 0, dia: 0 };
   
-  // 2. Clear Buffer Array Grafik (Kembalikan ke Nol)
+  // 2. Clear Buffer Array Grafik (Kembalikan ke Nilai 0)
   yHrBuffer.fill(0);
   ySpo2Buffer.fill(0);
   yTempBuffer.fill(0);
@@ -55,6 +55,11 @@ function resetSemuaData() {
 
   console.log("Semua data berhasil direset ke 0! ✅");
 }
+
+// Alias agar onclick="resetSemuaParameter()" pada HTML membaca fungsi ini
+window.resetSemuaParameter = function() {
+  resetSemuaData();
+};
 
 // ================= LOGIKA PROFIL PASIEN =================
 function muatProfilPasienLama() {
@@ -219,7 +224,7 @@ client.on("message", (topic, msg) => {
   try {
     let data = JSON.parse(msg.toString());
 
-    // 1. Parsing Suhu (TETAP TERJAGA, TIDAK AKAN HILANG)
+    // 1. Parsing Suhu (Nilai Terkunci Agar Tidak Hilang Saat Tensi Kirim Data)
     let rawTemp = data.temperature ?? data.temp;
     if (rawTemp !== undefined && Number(rawTemp) > 25 && Number(rawTemp) < 50) {
       currentData.temp = Number(rawTemp);
@@ -250,7 +255,7 @@ client.on("message", (topic, msg) => {
     // 5. Update Text UI
     updateUI(mmHgLive);
 
-    // 6. Fast Rendering Anti-Lag
+    // 6. Fast Rendering Anti-Lag (Throttle FPS)
     if (!isRendering) {
       isRendering = true;
       requestAnimationFrame(() => {
@@ -312,21 +317,16 @@ function evaluasiKondisiKlinis() {
   }
 }
 
-// ================= AUTOMATIC EVENT LISTENER BINDING =================
+// ================= EVENT LISTENER LOAD =================
 window.addEventListener("load", () => {
   muatProfilPasienLama();
   tampilkanTabelRiwayat();
   initPlotly();
 
-  // MENCARI TOMBOL RESET DI HTML SECARA OTOMATIS
-  // Cari berdasarkan ID umum atau tag tombol yang ada kata "reset"
-  let resetBtn = document.getElementById("btn-reset") || 
-                 document.getElementById("btnReset") || 
-                 document.getElementById("reset-btn") ||
-                 document.querySelector("button[onclick*='reset']");
-
+  // Pengikat tombol reset secara langsung
+  let resetBtn = document.querySelector("button[onclick*='reset']");
   if (resetBtn) {
     resetBtn.addEventListener("click", resetSemuaData);
-    console.log("Event listener tombol reset berhasil dipasang! 🔘");
+    console.log("Tombol Reset Berhasil Terhubung! 🔘");
   }
 });
