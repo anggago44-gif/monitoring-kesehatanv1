@@ -4,7 +4,6 @@ const topicReadings = "sensorReadings";
 
 // Memory Data Pasien Real-time
 let currentData = { temp: 0, spo2: 0, hr: 0, sys: 0, dia: 0 };
-let ecgPhase = 0;
 
 // Config Buffer Grafik (Fixed Array 30 Point)
 const MAX_POINTS = 30;
@@ -156,8 +155,8 @@ const chartLayoutBase = {
 
 const layoutHR = {
   ...chartLayoutBase,
-  title: "ECG / BPM",
-  yaxis: { fixedrange: true, range: [-20, 180] } 
+  title: "Heart Rate (BPM)",
+  yaxis: { fixedrange: true, range: [0, 200] } 
 };
 
 const layoutSpo2 = {
@@ -219,21 +218,6 @@ function updateGaugeFast(id, val, color) {
   if (document.getElementById(id)) {
     Plotly.restyle(id, { value: val, "gauge.bar.color": color }, [0]);
   }
-}
-
-// FUNGSI MEMBUAT PULSA DENYUT JANTUNG NYATA (DENGAN PROTEKSI FLATLINE)
-function generateEcgPoint(bpm) {
-  if (!bpm || Number(bpm) <= 0) {
-    ecgPhase = 0; 
-    return 0;
-  }
-  
-  ecgPhase = (ecgPhase + 1) % 8;
-  
-  if (ecgPhase === 3) return bpm * 1.4;  // Puncak R
-  if (ecgPhase === 4) return -bpm * 0.2; // Lembah S
-  if (ecgPhase === 5) return bpm * 0.3;  // Gelombang T
-  return bpm * 0.8;
 }
 
 // ================= MQTT RECEIVER (DENGAN WATCHDOG LAG-CUTTER) =================
@@ -310,9 +294,9 @@ client.on("message", (topic, msg) => {
       yHrBuffer.fill(0);
       ySpo2Buffer.fill(0);
     } else {
-      // JARI TERPASANG: Dorong data denyut
+      // JARI TERPASANG: Masukkan nilai BPM murni ke buffer
       yHrBuffer.shift(); 
-      yHrBuffer.push(generateEcgPoint(currentData.hr));
+      yHrBuffer.push(currentData.hr);
 
       ySpo2Buffer.shift(); 
       ySpo2Buffer.push(currentData.spo2);
