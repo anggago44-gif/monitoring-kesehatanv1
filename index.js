@@ -6,6 +6,9 @@ const topicReadings = "sensorReadings";
 let currentData = { temp: 0, spo2: 0, hr: 0, sys: 0, dia: 0 };
 let ecgPhase = 0;
 
+// Timer Timeout jika alat berhenti mengirim MQTT (misal: keluar menu alat)
+let mqttTimeoutTimer = null;
+
 // Config Buffer Grafik (Fixed Array 30 Point)
 const MAX_POINTS = 30;
 let xBuffer = Array.from({ length: MAX_POINTS }, (_, i) => i);
@@ -182,10 +185,10 @@ const layoutTensi = {
 function initPlotly() {
   if (!document.getElementById("chartHR")) return;
 
-  Plotly.newPlot("chartHR", [{ x: xBuffer, y: yHrBuffer, mode: "lines+markers", line: { color: "#ff3333", width: 2 } }], layoutHR, { responsive: true });
-  Plotly.newPlot("chartSpo2", [{ x: xBuffer, y: ySpo2Buffer, mode: "lines+markers", line: { color: "lime", width: 2 } }], layoutSpo2, { responsive: true });
-  Plotly.newPlot("chartTemp", [{ x: xBuffer, y: yTempBuffer, mode: "lines+markers", line: { color: "cyan", width: 2 } }], layoutTemp, { responsive: true });
-  Plotly.newPlot("chartTensi", [{ x: xBuffer, y: yTensiBuffer, mode: "lines+markers", line: { color: "orange", width: 2 } }], layoutTensi, { responsive: true });
+  Plotly.newPlot("chartHR", [{ x: xBuffer, y: yHrBuffer, mode: "lines", line: { color: "#ff3333", width: 2 } }], layoutHR, { responsive: true });
+  Plotly.newPlot("chartSpo2", [{ x: xBuffer, y: ySpo2Buffer, mode: "lines", line: { color: "lime", width: 2 } }], layoutSpo2, { responsive: true });
+  Plotly.newPlot("chartTemp", [{ x: xBuffer, y: yTempBuffer, mode: "lines", line: { color: "cyan", width: 2 } }], layoutTemp, { responsive: true });
+  Plotly.newPlot("chartTensi", [{ x: xBuffer, y: yTensiBuffer, mode: "lines", line: { color: "orange", width: 2 } }], layoutTensi, { responsive: true });
 
   initGauge("gaugeHR", "bpm", 150);
   initGauge("gaugeSpo2", "%", 100);
@@ -210,10 +213,10 @@ function initGauge(id, unit, max) {
 function renderChartsFast() {
   if (!document.getElementById("chartHR")) return;
 
-  Plotly.react("chartHR", [{ x: xBuffer, y: [...yHrBuffer], mode: "lines+markers", line: { color: "#ff3333", width: 2 } }], layoutHR);
-  Plotly.react("chartSpo2", [{ x: xBuffer, y: [...ySpo2Buffer], mode: "lines+markers", line: { color: "lime", width: 2 } }], layoutSpo2);
-  Plotly.react("chartTemp", [{ x: xBuffer, y: [...yTempBuffer], mode: "lines+markers", line: { color: "cyan", width: 2 } }], layoutTemp);
-  Plotly.react("chartTensi", [{ x: xBuffer, y: [...yTensiBuffer], mode: "lines+markers", line: { color: "orange", width: 2 } }], layoutTensi);
+  Plotly.react("chartHR", [{ x: xBuffer, y: [...yHrBuffer], mode: "lines", line: { color: "#ff3333", width: 2 } }], layoutHR);
+  Plotly.react("chartSpo2", [{ x: xBuffer, y: [...ySpo2Buffer], mode: "lines", line: { color: "lime", width: 2 } }], layoutSpo2);
+  Plotly.react("chartTemp", [{ x: xBuffer, y: [...yTempBuffer], mode: "lines", line: { color: "cyan", width: 2 } }], layoutTemp);
+  Plotly.react("chartTensi", [{ x: xBuffer, y: [...yTensiBuffer], mode: "lines", line: { color: "orange", width: 2 } }], layoutTensi);
 }
 
 function updateGaugeFast(id, val, color) {
@@ -224,7 +227,6 @@ function updateGaugeFast(id, val, color) {
 
 // FUNGSI MEMBUAT PULSA DENYUT JANTUNG NYATA
 function generateEcgPoint(bpm) {
-  // Jika bpm 0 atau invalid, MURNI KEMBALIKAN 0 (Tanpa Noise)
   if (!bpm || Number(bpm) <= 0) return 0;
   
   ecgPhase = (ecgPhase + 1) % 8;
@@ -232,7 +234,7 @@ function generateEcgPoint(bpm) {
   if (ecgPhase === 3) return bpm * 1.4; // Puncak R
   if (ecgPhase === 4) return -bpm * 0.2; // Lembah S
   if (ecgPhase === 5) return bpm * 0.3;  // Gelombang T
-  return bpm * 0.8 + (Math.random() * 2 - 1);
+  return bpm * 0.8;
 }
 
 // ================= MQTT RECEIVER =================
@@ -243,6 +245,18 @@ client.on("connect", () => {
 
 client.on("message", (topic, msg) => {
   if (topic !== topicReadings) return;
+
+  // Reset Timeout Timer setiap kali ada data MQTT baru masuk
+  clearTimeout(mqttTimeoutTimer);
+  mqttTimeoutTimer = setTimeout(() => {
+    // Jalankan jika alat tidak mengirim data selama 3 detik (misal: keluar menu)
+    currentData.hr = 0;
+    currentData.spo2 = 0;
+    yHrBuffer.fill(0);
+    ySpo2Buffer.fill(0);
+    updateUI(0);
+    renderChartsFast();
+  }, 3000);
 
   try {
     let data = JSON.parse(msg.toString());
@@ -261,7 +275,7 @@ client.on("message", (topic, msg) => {
       currentData.spo2 = (valSpo2 > 0 && valSpo2 <= 100) ? valSpo2 : 0;
     }
 
-    // 3. Parsing Heart Rate (Paksa ke 0 jika tidak ada data / sensor lepas)
+    // 3. Parsing Heart Rate (Paksa ke 0 jika sensor lepas / data invalid)
     let rawHr = data.heartRate ?? data.heartrate ?? data.hr ?? data.bpm ?? data.BPM;
     if (rawHr !== undefined) {
       let valHr = Number(rawHr);
@@ -279,16 +293,21 @@ client.on("message", (topic, msg) => {
       simpanKeRiwayatLog();
     }
 
-    // 5. Masukkan Data Baru ke Buffer Array
-    yHrBuffer.shift(); 
-    if (currentData.hr <= 0) {
-      yHrBuffer.push(0); // Langsung kunci ke angka 0
+    // 5. Update Buffer Array Grafik (Flatline instan saat HR <= 0)
+    if (currentData.hr <= 0 || currentData.spo2 <= 0) {
+      currentData.hr = 0;
+      yHrBuffer.fill(0); // Garis langsung mendatar di angka 0
     } else {
+      yHrBuffer.shift(); 
       yHrBuffer.push(generateEcgPoint(currentData.hr));
     }
 
-    ySpo2Buffer.shift(); 
-    ySpo2Buffer.push(currentData.spo2);
+    if (currentData.spo2 <= 0) {
+      ySpo2Buffer.fill(0);
+    } else {
+      ySpo2Buffer.shift(); 
+      ySpo2Buffer.push(currentData.spo2);
+    }
 
     yTempBuffer.shift(); 
     yTempBuffer.push(currentData.temp);
