@@ -6,7 +6,7 @@ const topicReadings = "sensorReadings";
 let currentData = { temp: 0, spo2: 0, hr: 0, sys: 0, dia: 0 };
 let ecgPhase = 0;
 
-// Config Buffer Grafik (Fixed Array 30 Point - Ultra Ringan & Bebas Lag)
+// Config Buffer Grafik (Fixed Array 30 Point)
 const MAX_POINTS = 30;
 let xBuffer = Array.from({ length: MAX_POINTS }, (_, i) => i);
 let yHrBuffer = Array(MAX_POINTS).fill(0);
@@ -14,28 +14,24 @@ let ySpo2Buffer = Array(MAX_POINTS).fill(0);
 let yTempBuffer = Array(MAX_POINTS).fill(0);
 let yTensiBuffer = Array(MAX_POINTS).fill(0);
 
-let isRendering = false; // Mencegah CPU Lag / Bottleneck Rendering
+let isRendering = false;
 
 // ================= FUNGSI RESET UTAMA =================
 function resetSemuaData() {
   console.log("Memulai proses reset data...");
 
-  // 1. Reset Variabel Internal Data Pasien
   currentData = { temp: 0, spo2: 0, hr: 0, sys: 0, dia: 0 };
   
-  // 2. Clear Buffer Array Grafik (Kembalikan ke Nilai 0)
   yHrBuffer.fill(0);
   ySpo2Buffer.fill(0);
   yTempBuffer.fill(0);
   yTensiBuffer.fill(0);
 
-  // 3. Reset Tampilan Angka Card UI
   if (document.getElementById("temp")) document.getElementById("temp").innerText = "0.0°C";
   if (document.getElementById("spo2")) document.getElementById("spo2").innerText = "0%";
   if (document.getElementById("hr"))   document.getElementById("hr").innerText   = "0 bpm";
   if (document.getElementById("bp"))   document.getElementById("bp").innerText   = "0/0 mmHg";
 
-  // 4. Reset Tampilan Status Medis
   let statusEl = document.getElementById("status");
   let adviceBox = document.getElementById("medical-advice");
   if (statusEl) {
@@ -46,7 +42,6 @@ function resetSemuaData() {
     adviceBox.innerText = "Sistem telah direset. Silakan tempatkan sensor pada pasien.";
   }
 
-  // 5. Render Ulang Grafik dan Gauge ke Nilai 0
   renderChartsFast();
   updateGaugeFast("gaugeHR", 0, "lime");
   updateGaugeFast("gaugeSpo2", 0, "lime");
@@ -56,7 +51,6 @@ function resetSemuaData() {
   console.log("Semua data berhasil direset ke 0! ✅");
 }
 
-// Alias agar onclick="resetSemuaParameter()" pada HTML membaca fungsi ini
 window.resetSemuaParameter = function() {
   resetSemuaData();
 };
@@ -153,23 +147,23 @@ function downloadCSV() {
   document.body.removeChild(link);
 }
 
-// ================= PLOTLY LAYOUT CONFIG (LIGHTWEIGHT) =================
+// ================= PLOTLY LAYOUT CONFIG (OPSI AUTORANGE DILAKUKAN BEBAS PERUBAHAN) =================
 const chartLayout = {
   paper_bgcolor: "black",
   plot_bgcolor: "black",
   font: { color: "white", size: 11 },
   margin: { l: 35, r: 15, t: 30, b: 25 },
   xaxis: { visible: false, fixedrange: true },
-  yaxis: { fixedrange: true }
+  yaxis: { fixedrange: true, autorange: true }
 };
 
 function initPlotly() {
   if (!document.getElementById("chartHR")) return;
 
-  Plotly.newPlot("chartHR", [{ x: xBuffer, y: yHrBuffer, mode: "lines", line: { color: "#ff3333", width: 2 } }], { ...chartLayout, title: "ECG / BPM" }, { staticPlot: true });
-  Plotly.newPlot("chartSpo2", [{ x: xBuffer, y: ySpo2Buffer, mode: "lines", line: { color: "lime", width: 2 } }], { ...chartLayout, title: "SpO₂ (%)", yaxis: { range: [0, 105] } }, { staticPlot: true });
-  Plotly.newPlot("chartTemp", [{ x: xBuffer, y: yTempBuffer, mode: "lines", line: { color: "cyan", width: 2 } }], { ...chartLayout, title: "Suhu (°C)", yaxis: { range: [20, 50] } }, { staticPlot: true });
-  Plotly.newPlot("chartTensi", [{ x: xBuffer, y: yTensiBuffer, mode: "lines", line: { color: "orange", width: 2 } }], { ...chartLayout, title: "Manset (mmHg)", yaxis: { range: [0, 220] } }, { staticPlot: true });
+  Plotly.newPlot("chartHR", [{ x: xBuffer, y: yHrBuffer, mode: "lines+markers", line: { color: "#ff3333", width: 2 } }], { ...chartLayout, title: "ECG / BPM" }, { responsive: true });
+  Plotly.newPlot("chartSpo2", [{ x: xBuffer, y: ySpo2Buffer, mode: "lines+markers", line: { color: "lime", width: 2 } }], { ...chartLayout, title: "SpO₂ (%)" }, { responsive: true });
+  Plotly.newPlot("chartTemp", [{ x: xBuffer, y: yTempBuffer, mode: "lines+markers", line: { color: "cyan", width: 2 } }], { ...chartLayout, title: "Suhu (°C)" }, { responsive: true });
+  Plotly.newPlot("chartTensi", [{ x: xBuffer, y: yTensiBuffer, mode: "lines+markers", line: { color: "orange", width: 2 } }], { ...chartLayout, title: "Manset (mmHg)" }, { responsive: true });
 
   initGauge("gaugeHR", "bpm", 150);
   initGauge("gaugeSpo2", "%", 100);
@@ -187,15 +181,17 @@ function initGauge(id, unit, max) {
       bar: { color: "lime", thickness: 0.3 },
       bgcolor: "black", bordercolor: "#333", borderwidth: 1
     }
-  }], { paper_bgcolor: "black", font: { color: "white" }, height: 160, margin: { t: 20, b: 10, l: 10, r: 10 } }, { staticPlot: true });
+  }], { paper_bgcolor: "black", font: { color: "white" }, height: 160, margin: { t: 20, b: 10, l: 10, r: 10 } }, { responsive: true });
 }
 
+// FUNGSI UPDATE GRAFIK PAKSA RENDER ULANG (MENGGUNAKAN CLONE ARRAY [...yBuffer])
 function renderChartsFast() {
   if (!document.getElementById("chartHR")) return;
-  Plotly.react("chartHR", [{ x: xBuffer, y: yHrBuffer, mode: "lines", line: { color: "#ff3333", width: 2 } }], { ...chartLayout, title: "ECG / BPM" });
-  Plotly.react("chartSpo2", [{ x: xBuffer, y: ySpo2Buffer, mode: "lines", line: { color: "lime", width: 2 } }], { ...chartLayout, title: "SpO₂ (%)", yaxis: { range: [0, 105] } });
-  Plotly.react("chartTemp", [{ x: xBuffer, y: yTempBuffer, mode: "lines", line: { color: "cyan", width: 2 } }], { ...chartLayout, title: "Suhu (°C)", yaxis: { range: [20, 50] } });
-  Plotly.react("chartTensi", [{ x: xBuffer, y: yTensiBuffer, mode: "lines", line: { color: "orange", width: 2 } }], { ...chartLayout, title: "Manset (mmHg)", yaxis: { range: [0, 220] } });
+
+  Plotly.react("chartHR", [{ x: xBuffer, y: [...yHrBuffer], mode: "lines+markers", line: { color: "#ff3333", width: 2 } }], { ...chartLayout, title: "ECG / BPM" });
+  Plotly.react("chartSpo2", [{ x: xBuffer, y: [...ySpo2Buffer], mode: "lines+markers", line: { color: "lime", width: 2 } }], { ...chartLayout, title: "SpO₂ (%)" });
+  Plotly.react("chartTemp", [{ x: xBuffer, y: [...yTempBuffer], mode: "lines+markers", line: { color: "cyan", width: 2 } }], { ...chartLayout, title: "Suhu (°C)" });
+  Plotly.react("chartTensi", [{ x: xBuffer, y: [...yTensiBuffer], mode: "lines+markers", line: { color: "orange", width: 2 } }], { ...chartLayout, title: "Manset (mmHg)" });
 }
 
 function updateGaugeFast(id, val, color) {
@@ -204,12 +200,15 @@ function updateGaugeFast(id, val, color) {
   }
 }
 
-function getEcgYValue(bpm) {
+// FUNGSI MEMBUAT PULSA DENYUT JANTUNG NYATA
+function generateEcgPoint(bpm) {
   if (bpm <= 0) return 0;
-  ecgPhase = (ecgPhase + 1) % 10;
-  if (ecgPhase === 5) return bpm * 1.8;
-  if (ecgPhase === 6) return bpm * 0.6;
-  return bpm;
+  ecgPhase = (ecgPhase + 1) % 8;
+  
+  if (ecgPhase === 3) return bpm * 1.4; // Gelombang Puncak
+  if (ecgPhase === 4) return -bpm * 0.2; // Gelombang Siklus Lembah
+  if (ecgPhase === 5) return bpm * 0.3;
+  return bpm * 0.8 + (Math.random() * 2 - 1);
 }
 
 // ================= MQTT RECEIVER =================
@@ -224,9 +223,9 @@ client.on("message", (topic, msg) => {
   try {
     let data = JSON.parse(msg.toString());
 
-    // 1. Parsing Suhu (Nilai Terkunci Agar Tidak Hilang Saat Tensi Kirim Data)
+    // 1. Parsing Suhu
     let rawTemp = data.temperature ?? data.temp;
-    if (rawTemp !== undefined && Number(rawTemp) > 25 && Number(rawTemp) < 50) {
+    if (rawTemp !== undefined && Number(rawTemp) > 20 && Number(rawTemp) < 50) {
       currentData.temp = Number(rawTemp);
     }
 
@@ -236,9 +235,9 @@ client.on("message", (topic, msg) => {
     if (rawHr && Number(rawHr) > 0) currentData.hr = Number(rawHr);
 
     // 3. Parsing Tensi
-    let mmHgLive = Number(data.mmHgLive || data.pressure || 0);
-    let sys = Number(data.systolic || 0);
-    let dia = Number(data.diastolic || 0);
+    let mmHgLive = Number(data.mmHgLive || data.pressure || data.mmhg || 0);
+    let sys = Number(data.systolic || data.sys || 0);
+    let dia = Number(data.diastolic || data.dia || 0);
 
     if (sys > 0 && dia > 0) {
       currentData.sys = sys;
@@ -246,23 +245,23 @@ client.on("message", (topic, msg) => {
       simpanKeRiwayatLog();
     }
 
-    // 4. Update Array Buffer
-    yHrBuffer.shift(); yHrBuffer.push(getEcgYValue(currentData.hr));
-    ySpo2Buffer.shift(); ySpo2Buffer.push(currentData.spo2);
-    yTempBuffer.shift(); yTempBuffer.push(currentData.temp);
-    yTensiBuffer.shift(); yTensiBuffer.push(mmHgLive);
+    // 4. Masukkan Data Baru ke Buffer Array
+    yHrBuffer.shift(); 
+    yHrBuffer.push(generateEcgPoint(currentData.hr));
 
-    // 5. Update Text UI
+    ySpo2Buffer.shift(); 
+    ySpo2Buffer.push(currentData.spo2);
+
+    yTempBuffer.shift(); 
+    yTempBuffer.push(currentData.temp);
+
+    yTensiBuffer.shift(); 
+    let valTensi = mmHgLive > 0 ? mmHgLive : currentData.sys;
+    yTensiBuffer.push(valTensi);
+
+    // 5. Update UI & Render Grafik
     updateUI(mmHgLive);
-
-    // 6. Fast Rendering Anti-Lag (Throttle FPS)
-    if (!isRendering) {
-      isRendering = true;
-      requestAnimationFrame(() => {
-        renderChartsFast();
-        isRendering = false;
-      });
-    }
+    renderChartsFast();
 
   } catch (e) {
     console.error("Data Error:", e);
@@ -281,17 +280,20 @@ function updateUI(mmHgLive) {
   updateGaugeFast("gaugeHR", currentData.hr, hrColor);
   updateGaugeFast("gaugeSpo2", currentData.spo2, "lime");
   updateGaugeFast("gaugeTemp", currentData.temp, "cyan");
-  updateGaugeFast("gaugeBP", mmHgLive, "orange");
+  
+  let bpGaugeVal = mmHgLive > 0 ? mmHgLive : currentData.sys;
+  updateGaugeFast("gaugeBP", bpGaugeVal, "orange");
 
-  evaluasiKondisiKlinis();
+  evaluasiKondisiKlinis(mmHgLive);
 }
 
-function evaluasiKondisiKlinis() {
+// ================= SISTEM PENDUKUNG KEPUTUSAN KLINIS =================
+function evaluasiKondisiKlinis(mmHgLive) {
   let statusEl = document.getElementById("status");
   let adviceBox = document.getElementById("medical-advice");
   if (!statusEl || !adviceBox) return;
 
-  if (currentData.temp === 0 && currentData.spo2 === 0 && currentData.hr === 0) {
+  if (currentData.temp === 0 && currentData.spo2 === 0 && currentData.hr === 0 && currentData.sys === 0) {
     statusEl.innerText = "MENUNGGU DATA...";
     statusEl.style.color = "orange";
     adviceBox.innerText = "Sistem siap. Tempelkan sensor ke pasien.";
@@ -299,21 +301,50 @@ function evaluasiKondisiKlinis() {
   }
 
   let issues = [];
-  if (currentData.temp > 37.5) issues.push("Demam");
-  if (currentData.temp > 0 && currentData.temp < 35.0) issues.push("Hipotermia");
+
+  // Evaluasi Suhu
+  if (currentData.temp > 37.5) issues.push("Demam (Suhu Tinggi)");
+  if (currentData.temp > 0 && currentData.temp < 35.0) issues.push("Hipotermia (Suhu Rendah)");
+
+  // Evaluasi SpO2
   if (currentData.spo2 > 0 && currentData.spo2 < 95) issues.push("Hipoksia (SpO2 Rendah)");
+
+  // Evaluasi Jantung (HR)
   if (currentData.hr > 100) issues.push("Takikardia (HR Tinggi)");
   if (currentData.hr > 0 && currentData.hr < 50) issues.push("Bradikardia (HR Rendah)");
-  if (currentData.sys > 135) issues.push("Hipertensi");
 
+  // Evaluasi Tekanan Darah (Tensi)
+  if (currentData.sys > 0 && currentData.dia > 0) {
+    if (currentData.sys >= 140 || currentData.dia >= 90) {
+      issues.push(`Hipertensi Stage 2 (${currentData.sys}/${currentData.dia} mmHg)`);
+    } else if ((currentData.sys >= 130 && currentData.sys <= 139) || (currentData.dia >= 80 && currentData.dia <= 89)) {
+      issues.push(`Hipertensi Stage 1 (${currentData.sys}/${currentData.dia} mmHg)`);
+    } else if (currentData.sys >= 120 && currentData.sys <= 129 && currentData.dia < 80) {
+      issues.push(`Pre-Hipertensi (${currentData.sys}/${currentData.dia} mmHg)`);
+    } else if (currentData.sys < 90 || currentData.dia < 60) {
+      issues.push(`Hipotensi / Tensi Rendah (${currentData.sys}/${currentData.dia} mmHg)`);
+    }
+  } else if (mmHgLive > 10) {
+    issues.push(`Manset Sedang Memompa (${mmHgLive} mmHg)...`);
+  }
+
+  // Update Status UI
   if (issues.length === 0) {
     statusEl.innerText = "AMAN (NORMAL)";
     statusEl.style.color = "#2ecc71";
-    adviceBox.innerHTML = "✅ <strong>Kondisi Normal:</strong> Seluruh tanda vital pasien dalam keadaan baik.";
+    adviceBox.innerHTML = "✅ <strong>Kondisi Normal:</strong> Seluruh tanda vital & tekanan darah pasien dalam keadaan baik.";
   } else {
-    statusEl.innerText = "BUTUH PERAWATAN";
-    statusEl.style.color = "#e74c3c";
-    adviceBox.innerHTML = `⚠️ <strong>Peringatan Medis:</strong> ${issues.join(", ")}.`;
+    let adaBahaya = issues.some(i => i.includes("Demam") || i.includes("Hipoksia") || i.includes("Hipertensi") || i.includes("Hipotensi") || i.includes("Takikardia"));
+    
+    if (adaBahaya) {
+      statusEl.innerText = "BUTUH PERAWATAN";
+      statusEl.style.color = "#e74c3c";
+    } else {
+      statusEl.innerText = "SEDANG MEMERIKSA...";
+      statusEl.style.color = "orange";
+    }
+
+    adviceBox.innerHTML = `⚠️ <strong>Peringatan Medis:</strong><br> • ${issues.join("<br> • ")}`;
   }
 }
 
@@ -323,7 +354,6 @@ window.addEventListener("load", () => {
   tampilkanTabelRiwayat();
   initPlotly();
 
-  // Pengikat tombol reset secara langsung
   let resetBtn = document.querySelector("button[onclick*='reset']");
   if (resetBtn) {
     resetBtn.addEventListener("click", resetSemuaData);
