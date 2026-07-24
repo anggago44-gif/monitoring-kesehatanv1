@@ -223,10 +223,12 @@ client.on("message", (topic, msg) => {
   try {
     let data = JSON.parse(msg.toString());
 
-    // 1. Parsing Suhu
+    // 1. Parsing Suhu (PERBAIKAN: Terima semua angka valid termasuk 0 / dibawah 25)
     let rawTemp = data.temperature ?? data.temp;
-    if (rawTemp !== undefined && Number(rawTemp) > 20 && Number(rawTemp) < 50) {
-      currentData.temp = Number(rawTemp);
+    if (rawTemp !== undefined) {
+      let valTemp = Number(rawTemp);
+      // Jika suhu di bawah 25°C (sensor terlepas / suhu ac), paksa ke 0
+      currentData.temp = (valTemp >= 25 && valTemp < 50) ? valTemp : 0;
     }
 
     // 2. Parsing SpO2 & Heart Rate
