@@ -7,8 +7,8 @@ let currentData = { temp: 0, spo2: 0, hr: 0, sys: 0, dia: 0 };
 let liveMmHg = 0;
 let ecgPhase = 0;
 
-// Tracker Waktu Terakhir Sensor Aktif (Untuk deteksi sensor terlepas)
-let lastHrDataTime = Date.now();
+// Tracker Waktu Terakhir Data Diterima (Timeout 3 Detik)
+let lastDataReceivedTime = Date.now();
 
 // Config Buffer Grafik (Fixed Array 30 Point)
 const MAX_POINTS = 30;
@@ -18,7 +18,6 @@ let ySpo2Buffer = Array(MAX_POINTS).fill(0);
 let yTempBuffer = Array(MAX_POINTS).fill(0);
 let yTensiBuffer = Array(MAX_POINTS).fill(0);
 
-// Status Cache untuk mencegah re-render jika grafik sudah benar-benar datar/nol
 let isChartFlat = false;
 
 // ================= FUNGSI RESET UTAMA =================
@@ -48,7 +47,7 @@ function resetSemuaData() {
     adviceBox.innerText = "Sistem telah direset. Silakan tempatkan sensor pada pasien.";
   }
 
-  isChartFlat = false; // Paksa render ulang grafik ke posisi 0
+  isChartFlat = false;
   renderChartsFast();
   updateGaugeFast("gaugeHR", 0, "lime");
   updateGaugeFast("gaugeSpo2", 0, "lime");
@@ -191,14 +190,13 @@ function initGauge(id, unit, max) {
   }], { paper_bgcolor: "black", font: { color: "white" }, height: 160, margin: { t: 20, b: 10, l: 10, r: 10 } }, { responsive: true, displayModeBar: false });
 }
 
-// UPDATE RENDER GRAFIK CEPAT
 function renderChartsFast() {
   if (!document.getElementById("chartHR")) return;
 
-  Plotly.react("chartHR", [{ x: xBuffer, y: yHrBuffer, mode: "lines", line: { color: "#ff3333", width: 2 } }], { ...chartLayout, title: "ECG / BPM" });
-  Plotly.react("chartSpo2", [{ x: xBuffer, y: ySpo2Buffer, mode: "lines", line: { color: "lime", width: 2 } }], { ...chartLayout, title: "SpO₂ (%)" });
-  Plotly.react("chartTemp", [{ x: xBuffer, y: yTempBuffer, mode: "lines", line: { color: "cyan", width: 2 } }], { ...chartLayout, title: "Suhu (°C)" });
-  Plotly.react("chartTensi", [{ x: xBuffer, y: yTensiBuffer, mode: "lines", line: { color: "orange", width: 2 } }], { ...chartLayout, title: "Manset (mmHg)" });
+  Plotly.react("chartHR", [{ x: xBuffer, y: [...yHrBuffer], mode: "lines", line: { color: "#ff3333", width: 2 } }], { ...chartLayout, title: "ECG / BPM" });
+  Plotly.react("chartSpo2", [{ x: xBuffer, y: [...ySpo2Buffer], mode: "lines", line: { color: "lime", width: 2 } }], { ...chartLayout, title: "SpO₂ (%)" });
+  Plotly.react("chartTemp", [{ x: xBuffer, y: [...yTempBuffer], mode: "lines", line: { color: "cyan", width: 2 } }], { ...chartLayout, title: "Suhu (°C)" });
+  Plotly.react("chartTensi", [{ x: xBuffer, y: [...yTensiBuffer], mode: "lines", line: { color: "orange", width: 2 } }], { ...chartLayout, title: "Manset (mmHg)" });
 }
 
 function updateGaugeFast(id, val, color) {
@@ -207,7 +205,7 @@ function updateGaugeFast(id, val, color) {
   }
 }
 
-// GENERATE GELOMBANG ECG (MENGHASILKAN 0 JIKA SENSOR LEPAS/BPM 0)
+// GENERATE GELOMBANG ECG (AMPLITUDO BEDA TERGANTUNG ADA TIDAKNYA DENYUT)
 function generateEcgPoint(bpm) {
   if (bpm <= 0) return 0;
   ecgPhase = (ecgPhase + 1) % 8;
@@ -228,29 +226,36 @@ client.on("message", (topic, msg) => {
   if (topic !== topicReadings) return;
 
   try {
-    let data = JSON.parse(msg.toString());
+    let rawStr = msg.toString();
+    let data = JSON.parse(rawStr);
 
-    // Update timestamp data masuk
-    lastHrDataTime = Date.now();
+    lastDataReceivedTime = Date.now(); // Catat waktu pesan terakhir
 
-    // 1. Suhu
-    let rawTemp = data.temperature ?? data.temp;
+    // 1. Parsing Suhu
+    let rawTemp = data.temperature ?? data.temp ?? data.suhu;
     if (rawTemp !== undefined) {
       let valTemp = Number(rawTemp);
       currentData.temp = (valTemp >= 25 && valTemp < 50) ? valTemp : 0;
     }
 
-    // 2. SpO2 & HR
-    let rawSpo2 = Number(data.spo2 || 0);
-    currentData.spo2 = rawSpo2 > 0 ? rawSpo2 : 0;
+    // 2. Parsing SpO2 (Mendukung fleksibilitas nama key JSON)
+    let rawSpo2 = data.spo2 ?? data.SpO2 ?? data.SPO2 ?? data.spo2Val;
+    if (rawSpo2 !== undefined) {
+      let valSpo2 = Number(rawSpo2);
+      currentData.spo2 = (valSpo2 > 0 && valSpo2 <= 100) ? valSpo2 : 0;
+    }
 
-    let rawHr = Number(data.heartRate ?? data.heartrate ?? data.hr ?? 0);
-    currentData.hr = rawHr > 0 ? rawHr : 0;
+    // 3. Parsing Heart Rate / BPM (Mendukung fleksibilitas nama key JSON)
+    let rawHr = data.heartRate ?? data.heartrate ?? data.hr ?? data.bpm ?? data.BPM ?? data.HR;
+    if (rawHr !== undefined) {
+      let valHr = Number(rawHr);
+      currentData.hr = (valHr > 0 && valHr < 220) ? valHr : 0;
+    }
 
-    // 3. Tensi
+    // 4. Parsing Tensi
     liveMmHg = Number(data.mmHgLive || data.pressure || data.mmhg || 0);
-    let sys = Number(data.systolic || data.sys || 0);
-    let dia = Number(data.dia || data.diastolic || 0);
+    let sys = Number(data.systolic || data.sys || data.SYS || 0);
+    let dia = Number(data.diastolic || data.dia || data.DIA || 0);
 
     if (sys > 0 && dia > 0 && (sys !== currentData.sys || dia !== currentData.dia)) {
       currentData.sys = sys;
@@ -259,19 +264,19 @@ client.on("message", (topic, msg) => {
     }
 
   } catch (e) {
-    console.error("Data Error:", e);
+    console.error("Gagal parse JSON:", e);
   }
 });
 
-// ================= RENDERING LOOP (5 FPS / 200ms) =================
+// ================= LOOP RENDER (200ms / 5 FPS) =================
 setInterval(() => {
-  // Cek jika sensor terlepas / tidak ada payload baru > 3 detik
-  if (Date.now() - lastHrDataTime > 3000) {
+  // Jika lebih dari 3 detik tidak ada payload MQTT baru, reset parameter vital ke 0
+  if (Date.now() - lastDataReceivedTime > 3000) {
     currentData.hr = 0;
     currentData.spo2 = 0;
   }
 
-  // Jika HR > 0 (sensor aktif), update buffer dan paksa render
+  // Jika ada data aktif (BPM / SpO2 / Suhu / Tensi)
   if (currentData.hr > 0 || currentData.spo2 > 0 || currentData.temp > 0 || liveMmHg > 0) {
     yHrBuffer.shift(); 
     yHrBuffer.push(generateEcgPoint(currentData.hr));
@@ -286,13 +291,12 @@ setInterval(() => {
     let valTensi = liveMmHg > 0 ? liveMmHg : currentData.sys;
     yTensiBuffer.push(valTensi);
 
-    isChartFlat = false; // Tandai bahwa grafik sedang bergerak
+    isChartFlat = false;
     updateUI(liveMmHg);
     renderChartsFast();
   } 
-  // Jika SENSOR DILEPAS (HR == 0)
+  // Jika Sensor Terlepas / BPM 0
   else {
-    // Jika grafik belum benar-benar mendatar, isi array dengan 0 lalu buat grafik datar
     if (!isChartFlat) {
       yHrBuffer.fill(0);
       ySpo2Buffer.fill(0);
@@ -301,7 +305,7 @@ setInterval(() => {
 
       updateUI(0);
       renderChartsFast();
-      isChartFlat = true; // Kunci grafik agar TIDAK re-render lagi saat diam!
+      isChartFlat = true; // Hentikan render ulang terus menerus saat grafik sudah datar 0
     }
   }
 }, 200);
@@ -334,7 +338,7 @@ function evaluasiKondisiKlinis(mmHgLive) {
   if (currentData.temp === 0 && currentData.spo2 === 0 && currentData.hr === 0 && currentData.sys === 0) {
     statusEl.innerText = "MENUNGGU DATA...";
     statusEl.style.color = "orange";
-    adviceBox.innerText = "Sistem siap / Sensor terlepas. Tempelkan sensor pada pasien.";
+    adviceBox.innerText = "Sistem siap / Sensor terlepas. Silakan tempatkan sensor pada pasien.";
     return;
   }
 
