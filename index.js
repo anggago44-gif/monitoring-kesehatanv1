@@ -220,7 +220,7 @@ function updateGaugeFast(id, val, color) {
   }
 }
 
-// ================= MQTT RECEIVER (DENGAN WATCHDOG LAG-CUTTER) =================
+// ================= MQTT RECEIVER (NILAI BPM MURNI) =================
 client.on("connect", () => {
   console.log("MQTT Terhubung ✅");
   client.subscribe(topicReadings);
@@ -228,7 +228,7 @@ client.on("connect", () => {
 
 let lastMessageTime = Date.now();
 
-// Deteksi Otomatis Jeda Kirim: Jika > 800ms tidak ada data baru, paksa FLATLINE seketika!
+// Deteksi Jeda Kirim: Jika > 800ms tidak ada data baru, paksa FLATLINE seketika ke angka 0
 setInterval(() => {
   let timeDiff = Date.now() - lastMessageTime;
   if (timeDiff > 800) { 
@@ -246,7 +246,6 @@ setInterval(() => {
 client.on("message", (topic, msg) => {
   if (topic !== topicReadings) return;
 
-  // Catat timestamp data MQTT masuk
   lastMessageTime = Date.now();
 
   try {
@@ -266,7 +265,7 @@ client.on("message", (topic, msg) => {
       currentData.spo2 = (valSpo2 > 0 && valSpo2 <= 100) ? valSpo2 : 0;
     }
 
-    // 3. Parsing Heart Rate (Paksa 0 jika data invalid)
+    // 3. Parsing Heart Rate (NILAI BPM MURNI)
     let rawHr = data.heartRate ?? data.heartrate ?? data.hr ?? data.bpm ?? data.BPM;
     if (rawHr !== undefined) {
       let valHr = Number(rawHr);
@@ -284,17 +283,17 @@ client.on("message", (topic, msg) => {
       simpanKeRiwayatLog();
     }
 
-    // ================= 5. UPDATE BUFFER GRAFIK =================
+    // ================= 5. UPDATE BUFFER GRAFIK (FLATLINE vs NILAI ASLI) =================
     let isFingerDetected = (currentData.hr > 0 && currentData.spo2 > 0);
 
     if (!isFingerDetected) {
-      // LEPAS JARI: Seketika buat flatline
+      // LEPAS JARI: Seketika flatline ke angka 0
       currentData.hr = 0;
       currentData.spo2 = 0;
       yHrBuffer.fill(0);
       ySpo2Buffer.fill(0);
     } else {
-      // JARI TERPASANG: Masukkan nilai BPM murni ke buffer
+      // PASANG JARI: Masukkan nilai asli BPM (misal: 80) langsung ke grafik
       yHrBuffer.shift(); 
       yHrBuffer.push(currentData.hr);
 
