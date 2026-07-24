@@ -14,8 +14,6 @@ let ySpo2Buffer = Array(MAX_POINTS).fill(0);
 let yTempBuffer = Array(MAX_POINTS).fill(0);
 let yTensiBuffer = Array(MAX_POINTS).fill(0);
 
-let isRendering = false;
-
 // ================= FUNGSI RESET UTAMA =================
 function resetSemuaData() {
   console.log("Memulai proses reset data...");
@@ -148,22 +146,46 @@ function downloadCSV() {
 }
 
 // ================= PLOTLY LAYOUT CONFIG =================
-const chartLayout = {
+const chartLayoutBase = {
   paper_bgcolor: "black",
   plot_bgcolor: "black",
   font: { color: "white", size: 11 },
   margin: { l: 35, r: 15, t: 30, b: 25 },
-  xaxis: { visible: false, fixedrange: true },
-  yaxis: { fixedrange: true, autorange: true }
+  xaxis: { visible: false, fixedrange: true }
+};
+
+// Batas Y-Axis Statis Khusus ECG/HR agar tidak melompat saat nilainya 0
+const layoutHR = {
+  ...chartLayoutBase,
+  title: "ECG / BPM",
+  yaxis: { fixedrange: true, range: [-20, 180] } 
+};
+
+const layoutSpo2 = {
+  ...chartLayoutBase,
+  title: "SpO₂ (%)",
+  yaxis: { fixedrange: true, range: [0, 110] }
+};
+
+const layoutTemp = {
+  ...chartLayoutBase,
+  title: "Suhu (°C)",
+  yaxis: { fixedrange: true, range: [20, 45] }
+};
+
+const layoutTensi = {
+  ...chartLayoutBase,
+  title: "Manset (mmHg)",
+  yaxis: { fixedrange: true, range: [0, 200] }
 };
 
 function initPlotly() {
   if (!document.getElementById("chartHR")) return;
 
-  Plotly.newPlot("chartHR", [{ x: xBuffer, y: yHrBuffer, mode: "lines+markers", line: { color: "#ff3333", width: 2 } }], { ...chartLayout, title: "ECG / BPM" }, { responsive: true });
-  Plotly.newPlot("chartSpo2", [{ x: xBuffer, y: ySpo2Buffer, mode: "lines+markers", line: { color: "lime", width: 2 } }], { ...chartLayout, title: "SpO₂ (%)" }, { responsive: true });
-  Plotly.newPlot("chartTemp", [{ x: xBuffer, y: yTempBuffer, mode: "lines+markers", line: { color: "cyan", width: 2 } }], { ...chartLayout, title: "Suhu (°C)" }, { responsive: true });
-  Plotly.newPlot("chartTensi", [{ x: xBuffer, y: yTensiBuffer, mode: "lines+markers", line: { color: "orange", width: 2 } }], { ...chartLayout, title: "Manset (mmHg)" }, { responsive: true });
+  Plotly.newPlot("chartHR", [{ x: xBuffer, y: yHrBuffer, mode: "lines+markers", line: { color: "#ff3333", width: 2 } }], layoutHR, { responsive: true });
+  Plotly.newPlot("chartSpo2", [{ x: xBuffer, y: ySpo2Buffer, mode: "lines+markers", line: { color: "lime", width: 2 } }], layoutSpo2, { responsive: true });
+  Plotly.newPlot("chartTemp", [{ x: xBuffer, y: yTempBuffer, mode: "lines+markers", line: { color: "cyan", width: 2 } }], layoutTemp, { responsive: true });
+  Plotly.newPlot("chartTensi", [{ x: xBuffer, y: yTensiBuffer, mode: "lines+markers", line: { color: "orange", width: 2 } }], layoutTensi, { responsive: true });
 
   initGauge("gaugeHR", "bpm", 150);
   initGauge("gaugeSpo2", "%", 100);
@@ -188,10 +210,10 @@ function initGauge(id, unit, max) {
 function renderChartsFast() {
   if (!document.getElementById("chartHR")) return;
 
-  Plotly.react("chartHR", [{ x: xBuffer, y: [...yHrBuffer], mode: "lines+markers", line: { color: "#ff3333", width: 2 } }], { ...chartLayout, title: "ECG / BPM" });
-  Plotly.react("chartSpo2", [{ x: xBuffer, y: [...ySpo2Buffer], mode: "lines+markers", line: { color: "lime", width: 2 } }], { ...chartLayout, title: "SpO₂ (%)" });
-  Plotly.react("chartTemp", [{ x: xBuffer, y: [...yTempBuffer], mode: "lines+markers", line: { color: "cyan", width: 2 } }], { ...chartLayout, title: "Suhu (°C)" });
-  Plotly.react("chartTensi", [{ x: xBuffer, y: [...yTensiBuffer], mode: "lines+markers", line: { color: "orange", width: 2 } }], { ...chartLayout, title: "Manset (mmHg)" });
+  Plotly.react("chartHR", [{ x: xBuffer, y: [...yHrBuffer], mode: "lines+markers", line: { color: "#ff3333", width: 2 } }], layoutHR);
+  Plotly.react("chartSpo2", [{ x: xBuffer, y: [...ySpo2Buffer], mode: "lines+markers", line: { color: "lime", width: 2 } }], layoutSpo2);
+  Plotly.react("chartTemp", [{ x: xBuffer, y: [...yTempBuffer], mode: "lines+markers", line: { color: "cyan", width: 2 } }], layoutTemp);
+  Plotly.react("chartTensi", [{ x: xBuffer, y: [...yTensiBuffer], mode: "lines+markers", line: { color: "orange", width: 2 } }], layoutTensi);
 }
 
 function updateGaugeFast(id, val, color) {
@@ -202,7 +224,8 @@ function updateGaugeFast(id, val, color) {
 
 // FUNGSI MEMBUAT PULSA DENYUT JANTUNG NYATA
 function generateEcgPoint(bpm) {
-  if (!bpm || bpm <= 0) return 0; // Mengembalikan 0 saat sensor lepas/BPM 0
+  // Jika bpm 0 atau invalid, MURNI KEMBALIKAN 0 (Tanpa Noise)
+  if (!bpm || Number(bpm) <= 0) return 0;
   
   ecgPhase = (ecgPhase + 1) % 8;
   
@@ -231,20 +254,21 @@ client.on("message", (topic, msg) => {
       currentData.temp = (valTemp >= 25 && valTemp < 50) ? valTemp : 0;
     }
 
-    // 2. Parsing SpO2 & Heart Rate (Perbaikan: Tangani nilai 0 saat lepas)
+    // 2. Parsing SpO2
     let rawSpo2 = data.spo2 ?? data.SpO2;
     if (rawSpo2 !== undefined) {
       let valSpo2 = Number(rawSpo2);
       currentData.spo2 = (valSpo2 > 0 && valSpo2 <= 100) ? valSpo2 : 0;
     }
 
+    // 3. Parsing Heart Rate (Paksa ke 0 jika tidak ada data / sensor lepas)
     let rawHr = data.heartRate ?? data.heartrate ?? data.hr ?? data.bpm ?? data.BPM;
     if (rawHr !== undefined) {
       let valHr = Number(rawHr);
       currentData.hr = (valHr > 0 && valHr < 220) ? valHr : 0;
     }
 
-    // 3. Parsing Tensi
+    // 4. Parsing Tensi
     let mmHgLive = Number(data.mmHgLive || data.pressure || data.mmhg || 0);
     let sys = Number(data.systolic || data.sys || 0);
     let dia = Number(data.diastolic || data.dia || 0);
@@ -255,9 +279,13 @@ client.on("message", (topic, msg) => {
       simpanKeRiwayatLog();
     }
 
-    // 4. Masukkan Data Baru ke Buffer Array
+    // 5. Masukkan Data Baru ke Buffer Array
     yHrBuffer.shift(); 
-    yHrBuffer.push(generateEcgPoint(currentData.hr));
+    if (currentData.hr <= 0) {
+      yHrBuffer.push(0); // Langsung kunci ke angka 0
+    } else {
+      yHrBuffer.push(generateEcgPoint(currentData.hr));
+    }
 
     ySpo2Buffer.shift(); 
     ySpo2Buffer.push(currentData.spo2);
@@ -269,7 +297,7 @@ client.on("message", (topic, msg) => {
     let valTensi = mmHgLive > 0 ? mmHgLive : currentData.sys;
     yTensiBuffer.push(valTensi);
 
-    // 5. Update UI & Render Grafik
+    // 6. Update UI & Render Grafik
     updateUI(mmHgLive);
     renderChartsFast();
 
